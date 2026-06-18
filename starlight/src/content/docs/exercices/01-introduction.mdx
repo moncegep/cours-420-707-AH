@@ -116,6 +116,81 @@ Déclarez un tableau associatif `$menu` reliant un nom de plat à son prix (au m
 `foreach ($menu as $name => $price) { ... }` donne accès simultanément à la clé et à la valeur.
 </Aside>
 
+### Exercice 8: Filtrer un catalogue de produits
+
+**But.** Manipuler un tableau de produits.
+
+```php
+<?php
+
+$products = [
+    ["name" => "Café", "category" => "boisson", "price" => 3.50],
+    ["name" => "Thé", "category" => "boisson", "price" => 2.75],
+    ["name" => "Muffin", "category" => "nourriture", "price" => 4.25],
+    ["name" => "Sandwich", "category" => "nourriture", "price" => 8.95],
+];
+```
+
+1. Affichez tous les produits dans une liste HTML.
+2. Créez un tableau `$cheapProducts` contenant seulement les produits de moins de 5 $.
+3. Calculez le prix moyen des produits.
+4. Affichez les résultats dans la page.
+
+### Exercice 9: Corriger les erreurs
+
+**But.** Lire un script avec erreurs et le corriger.
+
+```
+<?php
+
+$products = [
+  ["name" => "Café", "price" => 3.50],
+  ["name" => "Thé", "price" => 2.75]
+]
+
+foreach ($products as $product) {
+  echo "<p>" . $product["name"] . " : " . $product["prix"] . "$</p>";
+}
+
+echo "Nombre de produits : " . count($product);
+?>
+```
+
+### Exercice 10: Page dynamique complète
+
+**But.** Générer une vraie page dynamique.
+
+À partir d'un tableau de produits, générez une page HTML valide qui affiche :
+
+1. un titre ;
+2. un tableau HTML contenant le nom, la catégorie et le prix de chaque produit ;
+3. le nombre total de produits ;
+4. la liste des produits à moins de 5 $ ;
+5. les produits triés du moins cher au plus cher.
+
+#### Données de départ
+
+```php
+<?php
+
+$products = [
+    ["name" => "Café", "category" => "boisson", "price" => 3.50],
+    ["name" => "Thé", "category" => "boisson", "price" => 2.75],
+    ["name" => "Muffin", "category" => "nourriture", "price" => 4.25],
+    ["name" => "Sandwich", "category" => "nourriture", "price" => 8.95],
+    ["name" => "Salade", "category" => "nourriture", "price" => 7.50],
+];
+```
+
+#### Contraintes
+
+* utilisez `number_format` pour afficher les prix ;
+* utilisez `htmlspecialchars` pour afficher les textes dans le HTML.
+
+{/* <Aside type="tip" title="Structure suggérée">
+Commencez par préparer les données en PHP en haut du fichier, puis affichez le HTML ensuite. Cette séparation rend le code plus facile à lire.
+</Aside> */}
+
 
 {/* ### Exercice 9 : fonctions et portée
 

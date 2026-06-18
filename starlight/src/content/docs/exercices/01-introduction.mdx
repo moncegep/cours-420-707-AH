@@ -1,0 +1,138 @@
+---
+title: Exercices PHP
+description: Dix exercices PHP en difficulté croissante, dont deux dirigés résolus pas à pas.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps, Badge } from '@astrojs/starlight/components';
+
+{/* Dix exercices, en difficulté croissante. Les **deux exercices dirigés** sont résolus pas à pas : lisez-les comme des modèles. Les huit autres sont à faire en classe et à compléter à la maison. Sauf indication contraire, tous les identifiants (variables, fonctions) sont en anglais. */}
+
+{/* <Aside type="tip">
+Gardez la [référence des bases de PHP](/reference/ref-php) ouverte pendant les exercices.
+</Aside> */}
+
+### Exercice 1 : premiers affichages
+
+**But.** Afficher une courte fiche de commerce en combinant texte, variables et concaténation.
+
+<Steps>
+
+1. Créez `fiche.php` dans `htdocs`. Déclarez d'abord les données dans des variables :
+
+   ```php
+   <?php
+   $businessName = "Dépanneur Chez Ti-Jean";
+   $city = "Montréal";
+   $openHour = 7;
+   ?>
+   ```
+
+2. Affichez une phrase en **concaténant** les variables avec l'opérateur `.` :
+
+   ```php
+   <?php
+   echo "Le commerce " . $businessName . " est situé à " . $city . ".";
+   ?>
+   ```
+
+3. PHP interpole aussi les variables directement dans une chaîne à **guillemets doubles**. Cette version est équivalente et plus lisible :
+
+   ```php
+   <?php
+   echo "Ouvre à {$openHour} h.";
+   ?>
+   ```
+
+4. Solution complète :
+
+   ```php
+   <?php
+   $businessName = "Dépanneur Chez Ti-Jean";
+   $city = "Montréal";
+   $openHour = 7;
+
+   echo "Le commerce {$businessName} est situé à {$city}. ";
+   echo "Il ouvre à {$openHour} h.";
+   ?>
+   ```
+
+</Steps>
+
+<Aside type="caution" title="Simples ou doubles guillemets">
+Les guillemets **simples** n'interpolent pas : `'Bonjour $name'` affiche littéralement `Bonjour $name`. Les guillemets **doubles** interpolent : `"Bonjour $name"` remplace la variable par sa valeur.
+</Aside>
+
+### Exercice 2 : prix et taxes
+
+**But.** Calculer le prix total d'un article en ajoutant les taxes québécoises.
+
+Déclarez un prix avant taxes dans une variable. Calculez la TPS (5 %) et la TVQ (9,975 %), puis affichez le sous-total, chaque taxe et le total, arrondis à deux décimales avec `round(...)` ou `number_format(...)`.
+
+<Aside type="tip" title="Coup de pouce">
+`number_format($value, 2, ",", " ")` produit un affichage monétaire à la québécoise (virgule décimale, espace pour les milliers).
+</Aside>
+
+### Exercice 3 : manipulation de chaînes
+
+**But.** Normaliser le nom d'un commerce saisi de façon irrégulière.
+
+À partir de la variable `$raw = "  cabane à sucre l'érablière dorée  "`, produisez : le nom sans espaces superflus, le nom en majuscules, et sa longueur en caractères.
+
+<Aside type="tip" title="Coup de pouce">
+Regardez `trim`, `mb_strtoupper` et `mb_strlen` (les variantes `mb_` gèrent correctement les accents).
+</Aside>
+
+### Exercice 4 : conditions
+
+**But.** Vérifier si un client peut acheter de l'alcool (18 ans et plus au Québec).
+
+À partir d'une variable `$age`, affichez « Vente autorisée » si l'âge est suffisant, sinon « Vente refusée ». Ajoutez un troisième cas pour un âge invalide (négatif).
+
+### Exercice 5 : ternaire et valeur par défaut
+
+**But.** Afficher un message de bienvenue robuste même si le prénom est absent.
+
+À partir d'une variable `$firstName` qui peut valoir `null`, affichez « Bonjour, {`{prénom}`} » ou « Bonjour, cliente ou client » si le prénom n'est pas fourni.
+
+<Aside type="tip" title="Coup de pouce">
+L'opérateur de coalescence `??` est fait pour ça : `$firstName ?? "cliente ou client"`. Préférez-le à une condition sur une valeur potentiellement absente.
+</Aside>
+
+### Exercice 6 : boucle `for`
+
+**But.** Produire les lignes d'une facture.
+
+Avec une boucle `for`, affichez un tableau HTML de 5 lignes numérotées (« Ligne 1 », « Ligne 2 », etc.). L'objectif est de générer du HTML *par programmation*, pas de l'écrire à la main.
+
+### Exercice 7 : tableau associatif et `foreach` 
+
+**But.** Afficher le menu d'une poutinerie.
+
+Déclarez un tableau associatif `$menu` reliant un nom de plat à son prix (au moins quatre entrées). Parcourez-le avec `foreach` pour afficher une liste `<ul>` au format « Plat : 9,50 $ ».
+
+<Aside type="tip" title="Coup de pouce">
+`foreach ($menu as $name => $price) { ... }` donne accès simultanément à la clé et à la valeur.
+</Aside>
+
+
+{/* ### Exercice 9 : fonctions et portée
+
+**But.** Encapsuler un calcul réutilisable.
+
+Écrivez une fonction `computeTotal($price, $quantity = 1)` qui retourne le prix total. Appelez-la plusieurs fois avec des arguments différents. Vérifiez ensuite qu'une variable déclarée *dans* la fonction n'existe pas à l'extérieur : c'est la **portée** (scope) des variables.
+
+<Aside type="tip" title="Coup de pouce">
+Le paramètre `$quantity = 1` est une **valeur par défaut** : l'argument devient optionnel à l'appel.
+</Aside>
+
+### Exercice 10 : page dynamique complète
+
+**But.** Réunir tableau, boucle et HTML pour générer une vraie page.
+
+À partir d'un tableau de produits (nom et prix), générez une page HTML valide qui affiche un titre, puis la liste des produits dans un tableau `<table>`, et enfin le nombre total de produits. */}
+
+{/* <Aside type="note">
+Les corrigés des exercices non dirigés sont discutés en classe. Tentez chaque exercice avant de demander de l'aide : l'erreur fait partie de l'apprentissage.
+</Aside> */}

@@ -1,0 +1,129 @@
+{
+  "weeks": [
+    {
+      "number": "1", "date": "", "startDate": "2026-06-03",
+      "title": "Introduction et mise en route",
+      "topics": [
+        "Présentation du plan de cours",
+        "Modèle client-serveur et cycle d'une requête HTTP",
+        "Rôle du serveur: exécuter du code et produire du HTML",
+        "Prise en main des outils de développement (éditeur, navigateur)",
+        "Révision des bases de programmation (variables, conditions, boucles)"
+      ]
+    },
+    {
+      "number": "2", "date": "", "startDate": "2026-06-10",
+      "title": "Environnement XAMPP et premiers pas en PHP",
+      "topics": [
+        "Installation et configuration de XAMPP (Apache)",
+        "Dossier htdocs et exécution d'un script via localhost",
+        "Balises PHP, echo, print",
+        "Variables, typage dynamique et types de base",
+        "Commentaires et débogage (var_dump, print_r)",
+        "Première page web dynamique"
+      ]
+    },
+    {
+      "number": "3", "date": "", "startDate": "2026-06-15",
+      "title": "Structures, tableaux et fonctions",
+      "topics": [
+        "Opérateurs et structures conditionnelles (if, switch, ternaire, ??)",
+        "Boucles (for, while, foreach)",
+        "Tableaux indexés et associatifs",
+        "Fonctions: paramètres, valeurs par défaut, return",
+        "Portée des variables (scope)",
+        "Inclusion de fichiers (include, require)",
+        "Création d'un site simple avec traitement backend"
+      ]
+    },
+    {
+      "number": "4", "date": "", "startDate": "2026-06-22",
+      "title": "Formulaires et validation",
+      "topics": [
+        "Envoi de données: méthodes GET et POST",
+        "Récupération des données de formulaire ($_GET, $_POST)",
+        "Validation des données côté serveur",
+        "Sécurité de l'affichage (htmlspecialchars)"
+      ]
+    },
+    {
+      "number": "5", "date": "", "startDate": "2026-06-29",
+      "title": "Superglobales et introduction au MVC",
+      "topics": [
+        "Superglobales: $_GET, $_POST, $_SERVER",
+        "Verbes HTTP et $_SERVER['REQUEST_METHOD']",
+        "Aperçu des API: répondre à un programme plutôt qu'à un navigateur (réponse JSON avec json_encode, test avec curl)",
+        "Le patron MVC: modèle, vue, contrôleur",
+        "Séparation des responsabilités (données, logique, présentation)",
+        "Routes et contrôleurs: aiguiller une requête",
+        "Vues: générer le HTML côté serveur"
+      ],
+      "evaluation": "Travail pratique 1 (20 %)"
+    },
+    {
+      "number": "6", "date": "", "startDate": "2026-07-06",
+      "title": "Base de données MySQL et CRUD",
+      "topics": [
+        "Rappel des bases de données relationnelles",
+        "Introduction à MySQL et à phpMyAdmin",
+        "Connexion à la base de données (PDO)",
+        "Requêtes préparées et protection contre l'injection SQL",
+        "Opérations CRUD via contrôleurs et formulaires"
+      ]
+    },
+    {
+      "number": "7", "date": "", "startDate": "2026-08-03",
+      "title": "Structuration MVC du code",
+      "topics": [
+        "Organisation du code en MVC: modèles, contrôleurs, vues",
+        "Modèles: encapsuler l'accès à la base de données",
+        "Gabarits de vues et réutilisation (en-tête, pied de page)",
+        "Bonnes pratiques de structure et de maintenabilité"
+      ],
+      "evaluation": "Travail pratique 2 (20 %)"
+    },
+    {
+      "number": "8", "date": "", "startDate": "2026-08-10",
+      "title": "Authentification, sessions et cookies",
+      "topics": [
+        "Notion de session HTTP et d'état côté serveur",
+        "Sessions PHP ($_SESSION, session_start)",
+        "Cookies: portée et limites",
+        "Inscription et connexion d'un utilisateur",
+        "Hachage des mots de passe (password_hash, password_verify)",
+        "Présentation du projet intégrateur"
+      ]
+    },
+    {
+      "number": "9", "date": "", "startDate": "2026-08-17",
+      "title": "Rôles, permissions et contrôle d'accès",
+      "topics": [
+        "Contrôle d'accès basé sur les rôles",
+        "Restriction des pages selon l'utilisateur connecté",
+        "Protection des routes et redirections",
+        "Suivi de l'avancement du projet intégrateur"
+      ]
+    },
+    {
+      "number": "10", "date": "", "startDate": "2026-08-24",
+      "title": "Finalisation du projet et révision",
+      "topics": [
+        "Finalisation et présentation du projet intégrateur",
+        "Préparation à la livraison et au déploiement",
+        "Révision en vue de l'examen final"
+      ],
+      "evaluation": "Projet intégrateur (30 %)"
+    },
+    {
+      "number": "11", "date": "", "startDate": "2026-08-31",
+      "title": "Examen final",
+      "topics": [],
+      "evaluation": "Examen final (30 %)"
+    }
+  ],
+  "phases": [
+    { "label": "Fondements du développement côté serveur", "range": [0, 3] },
+    { "label": "Environnement XAMPP, MVC et base de données", "range": [4, 6] },
+    { "label": "Sécurité et projet intégrateur", "range": [7, 10] }
+  ]
+}

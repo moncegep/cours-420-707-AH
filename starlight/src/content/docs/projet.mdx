@@ -1,0 +1,252 @@
+---
+title: "Projet : Automatisation web"
+description: "Projet individuel évalué : écrire des scripts bash pour automatiser les tâches de développement web."
+---
+
+import { Aside, Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+## Mise en contexte
+
+Tu travailles comme développeur web junior chez **Studio Lumière**, une petite agence de design web. Ton collègue a développé un site vitrine pour un client, mais il a tout laissé en vrac dans un seul dossier : HTML, CSS, JavaScript et images pêle-mêle, sans structure, sans build, sans automatisation.
+
+Ton mandat : écrire des **scripts bash** qui automatisent l'organisation, la vérification, la construction et la configuration du site.
+
+---
+
+## Ce qui est fourni
+
+| Fichier | Rôle |
+|---|---|
+| `site-vitrine/` | Le projet web mal organisé — 15 fichiers en vrac |
+| `organiser.sh` | Squelette du script d'organisation — **à compléter** |
+| `verifier.sh` | Squelette du script de vérification — **à compléter** |
+| `construire.sh` | Squelette du script de build — **à compléter** |
+| `configurer.sh` | Squelette du script de configuration — **bonus** |
+| `deployer.sh` | Squelette du script de déploiement — **bonus** |
+
+{/* Chaque squelette contient l'en-tête, la structure, les `TODO` et des rappels de syntaxe. Tu complètes le corps de chaque étape. */}
+
+### Comment commencer
+
+<Steps>
+
+1. **Copie le dossier du projet** dans ton espace de travail.
+
+2. **Copie les scripts** (`.sh`) **dans** le dossier `site-vitrine/` :
+
+3. **Entre dans le dossier** et rends les scripts exécutables :
+
+4. **Tu travailles toujours depuis `site-vitrine/`**. Tous les scripts s'exécutent depuis ce dossier.
+
+</Steps>
+
+### Le site vitrine
+
+Le projet fourni est un site vitrine pour Studio Lumière:
+
+- 3 pages HTML
+- 3 fichiers CSS
+- 3 fichiers JavaScript
+- 3 images
+- un fichier de config
+- un brouillon. 
+
+Tout est à plat dans un seul dossier.  
+
+```
+site-vitrine/
+├── accueil.html       ← page d'accueil
+├── apropos.html       ← page à propos
+├── contact.html       ← page avec formulaire
+├── brouillon.html     ← page en cours de rédaction
+├── style1.css         ← mise en page
+├── style2.css         ← typographie
+├── navigation.css     ← barre de navigation
+├── app.js             ← script principal
+├── validation.js      ← validation du formulaire
+├── animation.js       ← animations
+├── logo.png           ← logo du studio
+├── photo1.jpg         ← photo projet
+├── photo2.jpg         ← photo projet
+├── config.env         ← configuration du build
+└── NOTES.txt          ← notes du développeur
+```
+
+
+Le code contient volontairement des commentaires `TODO` et `FIXME` que tes scripts devront détecter.
+
+---
+
+## Phase 1 : Organisation et vérification
+
+> **Remise : 22 mai**
+
+### Script 1 : `organiser.sh`
+
+Ce script réorganise le projet en vrac dans une structure propre :
+
+```
+site-vitrine/
+├── css/
+│   ├── navigation.css
+│   ├── style1.css
+│   └── style2.css
+├── js/
+│   ├── app.js
+│   ├── validation.js
+│   └── animation.js
+├── img/
+│   ├── logo.png
+│   ├── photo1.jpg
+│   └── photo2.jpg
+├── pages/
+│   ├── apropos.html
+│   └── contact.html
+├── brouillons/
+│   ├── brouillon.html
+│   └── NOTES.txt
+├── config.env
+└── index.html          ← accueil.html renommé
+```
+
+<Steps>
+
+1. **Créer les dossiers** `css/`, `js/`, `img/`, `pages/`, `brouillons/`.
+
+2. **Déplacer les fichiers** dans les bons dossiers.
+
+3. **Renommer** `accueil.html` en `index.html`.
+
+4. **Configurer les permissions** : scripts en `755`, fichiers web en `644`, config en `600`.
+
+5. **Afficher un résumé** de la nouvelle structure.
+
+</Steps>
+
+<Aside type="tip" title="Concepts OS en jeu">
+Ce script utilise directement les commandes du cours : `mkdir`, `mv`, `chmod`, `ls`, `find`. Chaque ligne de ton script est une commande que tu pourrais taper manuellement dans le terminal. Le script les enchaîne automatiquement.
+</Aside>
+
+### Script 2 : `verifier.sh`
+
+Ce script audite le code et génère un rapport dans `rapport.txt` :
+
+<Steps>
+
+1. **Chercher les TODO** dans tous les fichiers avec `grep` et compter les résultats.
+
+2. **Chercher les FIXME** de la même façon.
+
+3. **Compter les lignes de code** par type de fichier (HTML, CSS, JS) avec `find` et `wc`.
+
+4. **Écrire le tout** dans `rapport.txt` avec les redirections `>` et `>>`.
+
+</Steps>
+
+#### Exemple de rapport attendu :
+
+```
+Rapport de vérification — 2026-05-07
+════════════════════════════════════
+
+TODO trouvés:
+./index.html:18:    <!-- TODO: ajouter une section portfolio -->
+./css/style1.css:14:/* TODO: ajouter un layout grid */
+...
+Total : 11 TODO
+
+FIXME trouvés:
+./pages/apropos.html:20:    <!-- FIXME: le texte déborde sur mobile -->
+...
+Total : 4 FIXME
+
+Statistiques
+---------------------
+Lignes HTML : 95
+Lignes CSS  : 78
+Lignes JS   : 52
+Total       : 225
+```
+
+<Aside type="tip" title="Concepts OS en jeu">
+`grep` et les pipes (`|`) sont au cœur de ce script. C'est le même outillage qu'un administrateur système utilise pour chercher des erreurs dans des logs serveur ou analyser du trafic réseau.
+</Aside>
+
+### Livrables
+
+- Les deux scripts complétés et **exécutables** (`chmod +x`)
+- `README.md` documentant chaque script et les commandes pour les exécuter
+
+---
+
+## Phase 2 : Construction et configuration
+
+> **Remise : 30 mai**
+
+### Script 3 : `construire.sh`
+
+Ce script lit la configuration et produit une version distribuable du site dans `dist/` :
+
+<Steps>
+
+1. **Charger la configuration** avec `source config.env`, en respectant la priorité : variable du shell > fichier `.env` > valeur par défaut.
+
+2. **Préparer** le dossier `dist/` (le recréer de zéro).
+
+3. **Concaténer les CSS** en un seul `dist/styles.css` avec `cat`.
+
+4. **Concaténer les JS** en un seul `dist/app.js`.
+
+5. **Copier** les pages HTML et les images dans `dist/`.
+
+6. **Gérer les brouillons** : les inclure ou les exclure selon `SITE_BROUILLONS`.
+
+7. **Ajouter une bannière** avec la date de build si `SITE_BANNIERE=oui`.
+
+8. **Afficher** un résumé du build (taille des fichiers).
+
+</Steps>
+
+Le dossier `dist/` contient tout à plat (pas de sous-dossiers). Les fichiers HTML, CSS concaténé, JS concaténé et images cohabitent au même niveau.
+
+Le fichier `config.env` contrôle le comportement du build :
+
+```env
+SITE_NOM="Studio Lumière"
+SITE_DIST="dist"
+SITE_BROUILLONS="oui"
+SITE_BANNIERE="non"
+```
+
+On doit pouvoir surcharger la config depuis le terminal :
+
+```bash
+# Utilise config.env par défaut
+./construire.sh
+
+# Exclut les brouillons (surcharge shell)
+SITE_BROUILLONS=non ./construire.sh
+
+# Ajoute une bannière de build
+SITE_BANNIERE=oui ./construire.sh
+
+# Combine les deux
+SITE_BROUILLONS=non SITE_BANNIERE=oui ./construire.sh
+```
+
+<Aside type="tip" title="Concepts OS en jeu">
+Ce script combine deux familles de concepts. La concaténation (`cat fichier1 fichier2 > sortie`) est la version manuelle de ce que font Webpack ou Vite. Le chargement de config (`source`, `${VAR:-defaut}`, surcharge shell) est exactement le mécanisme `dotenv` utilisé par les applications web modernes.
+</Aside>
+
+### Livrables
+
+- `construire.sh` complété et exécutable
+- `config.env` avec les variables documentées
+- `README.md` mis à jour avec la documentation de la configuration
+
+
+---
+
+<Aside type="caution" title="Intégrité du travail">
+Le code doit démontrer **ta** compréhension des commandes. Tu peux utiliser l'IA comme outil d'apprentissage, mais le code remis doit être le tien.
+</Aside>

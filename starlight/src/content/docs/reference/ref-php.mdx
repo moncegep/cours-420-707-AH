@@ -1,0 +1,387 @@
+---
+title: "Référence : bases de PHP"
+description: Aide-mémoire de la syntaxe de base de PHP, des variables aux fonctions, avec exemples courts.
+sidebar:
+  order: 3
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Aide-mémoire concis de la syntaxe PHP utile pour ce cours. À consulter pendant les exercices. Les identifiants sont en anglais ; gardez cette convention dans votre propre code.
+
+## Balises et affichage
+
+Le code PHP se place entre `<?php` et `?>`. En dehors de ces balises, tout est renvoyé tel quel.
+
+```php
+<?php
+echo "Texte envoyé dans la réponse";   // affichage simple
+print "Autre affichage";               // équivalent, retourne 1
+?>
+```
+
+Pour inspecter une valeur pendant le débogage :
+
+```php
+var_dump($value);   // type + contenu détaillé
+print_r($array);    // structure lisible d'un tableau
+```
+
+## Commentaires
+
+```php
+// commentaire sur une ligne
+# autre commentaire sur une ligne
+/* commentaire
+   sur plusieurs lignes */
+```
+
+## Variables et constantes
+
+Une variable commence par `$`. PHP est à **typage dynamique** : le type est déduit de la valeur et peut changer.
+
+```php
+$name = "Ti-Jean";   // string
+$age = 42;            // int
+$price = 9.95;        // float
+$isOpen = true;       // bool
+```
+
+Une constante ne change pas après sa définition :
+
+```php
+const TAX_TPS = 0.05;
+define("TAX_TVQ", 0.09975);
+```
+
+## Types de base
+
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Exemple</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>string</code></td>
+      <td><code>"Bonjour"</code></td>
+      <td>chaîne de caractères</td>
+    </tr>
+    <tr>
+      <td><code>int</code></td>
+      <td><code>42</code></td>
+      <td>entier</td>
+    </tr>
+    <tr>
+      <td><code>float</code></td>
+      <td><code>9.95</code></td>
+      <td>nombre décimal</td>
+    </tr>
+    <tr>
+      <td><code>bool</code></td>
+      <td><code>true</code> / <code>false</code></td>
+      <td>booléen</td>
+    </tr>
+    <tr>
+      <td><code>null</code></td>
+      <td><code>null</code></td>
+      <td>absence de valeur</td>
+    </tr>
+    <tr>
+      <td><code>array</code></td>
+      <td><code>[1, 2, 3]</code></td>
+      <td>tableau (voir plus bas)</td>
+    </tr>
+  </tbody>
+</table>
+
+## Opérateurs
+
+<Tabs>
+<TabItem label="Arithmétique">
+
+<table>
+  <thead>
+    <tr>
+      <th>Opérateur</th>
+      <th>Rôle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>+ - * /</code></td>
+      <td>addition, soustraction, multiplication, division</td>
+    </tr>
+    <tr>
+      <td><code>%</code></td>
+      <td>reste de la division (modulo)</td>
+    </tr>
+    <tr>
+      <td><code>**</code></td>
+      <td>puissance</td>
+    </tr>
+  </tbody>
+</table>
+
+</TabItem>
+<TabItem label="Comparaison">
+
+<table>
+  <thead>
+    <tr>
+      <th>Opérateur</th>
+      <th>Rôle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>==</code></td>
+      <td>égalité de <strong>valeur</strong> (avec conversion de type)</td>
+    </tr>
+    <tr>
+      <td><code>===</code></td>
+      <td>égalité de <strong>valeur et de type</strong></td>
+    </tr>
+    <tr>
+      <td><code>!=</code> / <code>!==</code></td>
+      <td>différence (valeur / valeur et type)</td>
+    </tr>
+    <tr>
+      <td><code>&lt; &gt; &lt;= &gt;=</code></td>
+      <td>comparaisons numériques</td>
+    </tr>
+  </tbody>
+</table>
+
+
+</TabItem>
+<TabItem label="Logique et chaînes">
+
+<table>
+  <thead>
+    <tr>
+      <th>Opérateur</th>
+      <th>Rôle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>&amp;&amp;</code> <code>||</code> <code>!</code></td>
+      <td>et, ou, non</td>
+    </tr>
+    <tr>
+      <td><code>.</code></td>
+      <td>concaténation de chaînes</td>
+    </tr>
+    <tr>
+      <td><code>??</code></td>
+      <td>coalescence : valeur de gauche si elle existe, sinon celle de droite</td>
+    </tr>
+  </tbody>
+</table>
+
+</TabItem>
+</Tabs>
+
+<Aside type="caution" title="== contre ===">
+Préférez `===` par défaut. `==` applique des conversions de type parfois surprenantes (par exemple `0 == "texte"` peut être vrai selon la version de PHP). `===` est prévisible.
+</Aside>
+
+## Chaînes de caractères
+
+Les guillemets **doubles** interpolent les variables ; les **simples** non.
+
+```php
+$name = "Ti-Jean";
+echo "Bonjour {$name}";   // Bonjour Ti-Jean
+echo 'Bonjour {$name}';   // Bonjour {$name}
+```
+
+Quelques fonctions utiles (versions `mb_` pour le texte accentué) :
+
+```php
+mb_strlen($text);            // longueur
+mb_strtoupper($text);        // majuscules
+trim($text);                 // retire les espaces aux extrémités
+str_replace("a", "b", $t);   // remplacement
+filter_var($email, FILTER_VALIDATE_EMAIL);  // valide un courriel
+htmlspecialchars($text);     // neutralise le HTML avant affichage
+```
+
+## Conditions
+
+```php
+if ($age >= 18) {
+  echo "Majeur";
+} elseif ($age >= 0) {
+  echo "Mineur";
+} else {
+  echo "Âge invalide";
+}
+```
+
+Opérateur ternaire et coalescence, pour les cas simples :
+
+```php
+$status = $age >= 18 ? "majeur" : "mineur";
+$firstName = $input ?? "cliente ou client";   // valeur par défaut si absent
+```
+
+Le `switch`, quand on compare une même variable à plusieurs valeurs :
+
+```php
+switch ($day) {
+  case "samedi":
+  case "dimanche":
+    echo "Fin de semaine";
+    break;
+  default:
+    echo "Jour de semaine";
+}
+```
+
+<Aside type="tip" title="Préférez ??"> Quand une valeur peut être absente, `??` permet de fournir une valeur par défaut simplement. Par exemple, si une variable `$nom` n’existe pas encore ou vaut `null`, on peut afficher `"visiteur"` à la place : `$nom ?? "visiteur"` </Aside>
+
+## Boucles
+
+<Tabs>
+<TabItem label="for">
+
+```php
+for ($i = 1; $i <= 5; $i++) {
+  echo "Ligne {$i}";
+}
+```
+
+</TabItem>
+<TabItem label="while">
+
+```php
+$i = 1;
+while ($i <= 5) {
+  echo "Ligne {$i}";
+  $i++;
+}
+```
+
+</TabItem>
+<TabItem label="foreach">
+
+```php
+foreach ($menu as $name => $price) {
+  echo "{$name} : {$price} $";
+}
+```
+
+</TabItem>
+</Tabs>
+
+`foreach` est le choix par défaut pour parcourir un tableau. `for` convient quand on a besoin d'un compteur ; `while` quand la condition d'arrêt n'est pas un simple comptage.
+
+## Tableaux
+
+Tableau **indexé** (clés numériques automatiques) :
+
+```php
+$products = ["sirop", "beurre", "tire"];
+echo $products[0];     // sirop
+$products[] = "sucre"; // ajoute à la fin
+```
+
+Tableau **associatif** (clés nommées) :
+
+```php
+$prices = ["sirop" => 14.50, "beurre" => 9.95];
+echo $prices["sirop"];   // 14.5
+```
+
+Tableau de tableaux (utile pour une liste d'enregistrements) :
+
+```php
+$catalog = [
+  ["name" => "sirop", "price" => 14.50],
+  ["name" => "beurre", "price" => 9.95],
+];
+echo $catalog[0]["name"];   // sirop
+```
+
+Fonctions courantes : `count($array)`, `array_push($array, $value)`, `in_array($value, $array)`, `array_keys($array)`, `sort($array)`, `usort($array, $callback)`.
+
+## Fonctions
+
+```php
+function computeTotal($price, $quantity = 1) {
+  return $price * $quantity;
+}
+
+echo computeTotal(9.95);       // quantity vaut 1 par défaut
+echo computeTotal(9.95, 3);
+```
+
+- Les paramètres peuvent avoir une **valeur par défaut**, ce qui les rend optionnels.
+- On peut préciser les types : `function computeTotal(float $price, int $quantity = 1): float`.
+- `return` renvoie une valeur et termine la fonction.
+
+### Portée des variables
+
+Une variable déclarée **dans** une fonction n'existe pas à l'extérieur, et inversement.
+
+```php
+function demo() {
+  $local = 10;   // existe seulement dans demo()
+}
+demo();
+echo $local;     // erreur : $local n'existe pas ici
+```
+
+<Aside type="note" title="Pourquoi c'est important">
+La portée empêche les fonctions d'interférer entre elles. Passez les données par **paramètres** et récupérez les résultats par **return** plutôt que de partager des variables globales.
+</Aside>
+
+## Inclure des fichiers
+
+```php
+include __DIR__ . "/includes/header.php";   // avertissement si absent
+require __DIR__ . "/config.php";             // erreur fatale si absent
+$products = require __DIR__ . "/data/products.php";   // récupère ce que le fichier retourne
+```
+
+Utilisez `require` pour un fichier indispensable, `include` pour un fichier optionnel. `__DIR__` est le dossier du fichier courant : il fiabilise les chemins.
+
+{/* ## Superglobales (aperçu)
+
+Ces tableaux spéciaux sont accessibles partout. Ils sont approfondis à la phase 2.
+
+<table>
+  <thead>
+    <tr>
+      <th>Superglobale</th>
+      <th>Contenu</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>$_GET</code></td>
+      <td>données passées dans l&apos;URL</td>
+    </tr>
+    <tr>
+      <td><code>$_POST</code></td>
+      <td>données envoyées par un formulaire en POST</td>
+    </tr>
+    <tr>
+      <td><code>$_SERVER</code></td>
+      <td>informations sur la requête et le serveur</td>
+    </tr>
+  </tbody>
+</table>
+
+```php
+$amount = $_POST["amount"] ?? "";   // toujours une valeur par défaut
+```
+
+<Aside type="danger" title="Donnée externe = donnée à valider">
+Une valeur provenant de `$_GET` ou `$_POST` arrive sous forme de chaîne et n'est jamais fiable. Récupérez-la avec `??`, validez-la, puis seulement utilisez-la.
+</Aside> */}

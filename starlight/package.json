@@ -1,0 +1,28 @@
+{
+  "name": "starlight",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/react": "^5.0.7",
+    "@astrojs/starlight": "^0.39.3",
+    "@lucide/astro": "^1.17.0",
+    "astro": "^6.3.1",
+    "astro-mermaid": "^2.0.2",
+    "lucide-react": "^1.17.0",
+    "mermaid": "^11.15.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@modyfi/vite-plugin-yaml": "^1.1.1"
+  }
+}

@@ -1,0 +1,556 @@
+---
+title: Notions avancées de PHP
+description: Tableaux et fonctions en PHP, avec comparaison continue à JavaScript et des exemples concrets à tester.
+sidebar:
+  order: 3
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+
+Cette page couvre les **tableaux** et les **fonctions**, les deux outils qui permettent de générer du contenu par programmation plutôt que de l'écrire à la main. La comparaison avec JavaScript continue tout du long.
+
+{/* <Aside type="prerequis" title="Avant de commencer">
+Maîtrisez d'abord les [bases](../prise-en-main-php/) : variables, types, conditions, boucles. Testez les exemples dans un fichier de `htdocs`.
+</Aside> */}
+
+## Les tableaux indexés
+
+Un tableau indexé range des valeurs dans un ordre, accessibles par un indice qui commence à 0.
+
+```php
+<?php
+$products = ["sirop", "beurre", "tire"];
+echo $products[0];      // sirop
+$products[] = "sucre";  // ajoute à la fin
+echo count($products);  // 4
+```
+
+**En JavaScript :**
+
+```js
+let products = ["sirop", "beurre", "tire"];
+console.log(products[0]);   // sirop
+products.push("sucre");     // ajoute à la fin
+console.log(products.length); // 4
+```
+
+<Aside type="syntaxe" title="Différences de surface">
+Ajout à la fin : PHP utilise `$arr[] = valeur`, JavaScript utilise `arr.push(valeur)`. Taille : PHP utilise la fonction `count($arr)`, JavaScript utilise la propriété `arr.length`.
+</Aside>
+
+## Les tableaux associatifs
+
+Un tableau associatif relie des **clés** à des **valeurs**.
+
+```php
+<?php
+$prices = ["sirop" => 14.50, "beurre" => 9.95];
+echo $prices["sirop"];   // 14.5
+```
+
+**En JavaScript :**
+
+```js
+let prices = { sirop: 14.50, beurre: 9.95 };
+console.log(prices["sirop"]);   // 14.5
+```
+
+<Highlight couleur="violet">En PHP, le tableau indexé et le tableau associatif sont un seul et même type : `array`.</Highlight> En JavaScript, ce sont deux choses distinctes : un `Array` pour les listes, un `Object` (ou une `Map`) pour les paires clé-valeur. C'est la différence conceptuelle la plus importante de cette page.
+
+<MarginNote type="attention" titre="Conséquence">
+Comme tout est un `array` en PHP, une même variable peut mélanger indices numériques et clés nommées. C'est puissant, mais ça demande de la rigueur dans le nommage.
+</MarginNote>
+
+## Parcourir un tableau : `foreach`
+
+`foreach` est l'outil de prédilection pour parcourir un tableau.
+
+```php
+<?php
+$menu = ["Poutine" => 9.50, "Guédille" => 7.00];
+
+foreach ($menu as $plat => $prix) {
+  echo "{$plat} : {$prix} $";
+}
+```
+
+**En JavaScript :**
+
+```js
+let menu = { Poutine: 9.50, Guédille: 7.00 };
+
+for (const [plat, prix] of Object.entries(menu)) {
+  console.log(`${plat} : ${prix} $`);
+}
+```
+
+<Aside type="syntaxe" title="foreach, clé et valeur">
+`foreach ($arr as $valeur)` donne chaque valeur. `foreach ($arr as $cle => $valeur)` donne la clé **et** la valeur. 
+</Aside>
+## Fonctions utiles sur les tableaux
+
+PHP fournit plusieurs fonctions pour inspecter, transformer, filtrer, trier ou modifier des tableaux.
+Ces fonctions sont très utilisées, car elles évitent d'écrire manuellement des boucles pour des opérations courantes.
+
+```php
+<?php
+
+$prices = [14.50, 9.95, 7.00];
+```
+
+### Taille, présence et recherche
+
+```php
+<?php
+
+$prices = [14.50, 9.95, 7.00];
+
+count($prices);                        // 3
+
+in_array(9.95, $prices);               // true
+in_array(9.95, $prices, true);         // true, comparaison stricte recommandée
+
+array_search(9.95, $prices);           // 1, retourne l'index de la valeur trouvée
+array_search(20.00, $prices);          // false
+```
+
+Pour les tableaux associatifs, on utilise souvent les clés.
+
+```php
+<?php
+
+$product = [
+    "name" => "Café",
+    "price" => 3.50,
+    "available" => true
+];
+
+array_key_exists("price", $product);   // true
+isset($product["price"]);              // true
+```
+
+<MarginNote type="attention" titre="array_key_exists ou isset ?">
+`array_key_exists()` vérifie si une clé existe dans le tableau, même si sa valeur est `null`.
+`isset()` vérifie si la clé existe et si sa valeur n'est pas `null`.
+</MarginNote>
+
+### Filtrer un tableau avec `array_filter`
+
+`array_filter` garde seulement les éléments qui respectent une condition.
+
+```php
+<?php
+
+$prices = [14.50, 9.95, 7.00];
+
+$expensive = array_filter($prices, fn($price) => $price > 8);
+
+// [14.50, 9.95]
+```
+
+<MarginNote type="attention" titre="Attention aux clés">
+`array_filter()` conserve les clés du tableau original.  
+Si on veut réindexer le résultat comme une liste normale, on peut utiliser `array_values()`.
+</MarginNote>
+
+```php
+<?php
+
+$expensive = array_filter($prices, fn($price) => $price > 8);
+$expensive = array_values($expensive);
+
+// [14.50, 9.95]
+```
+
+{/* ### Réduire un tableau à une seule valeur avec `array_reduce`
+
+`array_reduce` permet de transformer un tableau en une seule valeur : une somme, un total, un score, une chaîne de caractères, etc.
+
+```php
+<?php
+
+$prices = [14.50, 9.95, 7.00];
+
+$total = array_reduce(
+    $prices,
+    fn($sum, $price) => $sum + $price,
+    0
+);
+
+// 31.45
+```
+
+Pour une somme simple, PHP offre aussi `array_sum`.
+
+```php
+<?php
+
+$total = array_sum($prices);           // 31.45
+$lowest = min($prices);                // 7.00
+$highest = max($prices);               // 14.50
+``` */}
+
+### Obtenir les clés ou les valeurs d'un tableau associatif
+
+```php
+<?php
+
+$product = [
+    "name" => "Café",
+    "price" => 3.50,
+    "available" => true
+];
+
+array_keys($product);      // ["name", "price", "available"]
+array_values($product);    // ["Café", 3.50, true]
+```
+
+`array_values` est aussi utile après un filtre, lorsque les index numériques ne sont plus consécutifs.
+
+### Trier un tableau
+
+Certaines fonctions de tri modifient directement le tableau. Elles ne retournent pas une nouvelle copie triée.
+
+```php
+<?php
+
+$prices = [14.50, 9.95, 7.00];
+
+sort($prices);       // trie en ordre croissant
+// [7.00, 9.95, 14.50]
+
+rsort($prices);      // trie en ordre décroissant
+// [14.50, 9.95, 7.00]
+```
+
+#### Tableaux associatifs
+
+Pour les tableaux associatifs, il existe des fonctions qui préservent ou utilisent les clés.
+
+```php
+<?php
+
+$productPrices = [
+    "Café" => 3.50,
+    "Thé" => 2.75,
+    "Muffin" => 4.25
+];
+
+asort($productPrices);     // trie par valeur en conservant les clés
+ksort($productPrices);     // trie par clé
+```
+
+Pour un tri personnalisé, on peut utiliser `usort`.
+
+```php
+<?php
+
+$products = [
+    ["name" => "Café", "price" => 3.50],
+    ["name" => "Thé", "price" => 2.75],
+    ["name" => "Muffin", "price" => 4.25]
+];
+
+usort($products, fn($a, $b) => $a["price"] <=> $b["price"]);
+```
+
+### Ajouter et retirer des éléments
+
+```php
+<?php
+
+$names = ["Alice", "Bob"];
+
+$names[] = "Charlie";             // ajoute à la fin
+array_push($names, "Diane");      // ajoute aussi à la fin
+
+$last = array_pop($names);        // retire et retourne le dernier élément
+$first = array_shift($names);     // retire et retourne le premier élément
+
+array_unshift($names, "Zoé");    // ajoute au début
+```
+
+En PHP, la syntaxe `$array[] = ...` est souvent plus simple que `array_push` lorsqu'on ajoute un seul élément.
+
+### Combiner, découper et modifier des tableaux
+
+```php
+<?php
+
+$first = ["Alice", "Bob"];
+$second = ["Charlie", "Diane"];
+
+$merged = array_merge($first, $second);
+// ["Alice", "Bob", "Charlie", "Diane"]
+```
+
+```php
+<?php
+
+$names = ["Alice", "Bob", "Charlie", "Diane"];
+
+$slice = array_slice($names, 1, 2);
+// ["Bob", "Charlie"]
+```
+
+`array_splice` modifie le tableau original.
+
+```php
+<?php
+
+$names = ["Alice", "Bob", "Charlie", "Diane"];
+
+array_splice($names, 1, 2, ["Béatrice"]);
+
+// ["Alice", "Béatrice", "Diane"]
+```
+
+{/* ### Éliminer les doublons et inverser l'ordre
+
+```php
+<?php
+
+$numbers = [1, 2, 2, 3, 3, 3];
+
+$unique = array_unique($numbers);
+// [1, 2, 3]
+
+$unique = array_values($unique);
+// [1, 2, 3]
+```
+
+```php
+<?php
+
+$names = ["Alice", "Bob", "Charlie"];
+
+$reversed = array_reverse($names);
+// ["Charlie", "Bob", "Alice"]
+``` */}
+
+### Convertir entre chaîne et tableau
+
+Même si ce ne sont pas strictement des fonctions de tableau, `explode` et `implode` sont souvent utilisées avec des tableaux.
+
+```php
+<?php
+
+$line = "Alice,Bob,Charlie";
+
+$names = explode(",", $line);
+// ["Alice", "Bob", "Charlie"]
+
+$text = implode(", ", $names);
+// "Alice, Bob, Charlie"
+```
+
+### Résumé des fonctions fréquentes
+
+<table>
+  <thead>
+    <tr>
+      <th>Fonction</th>
+      <th>Rôle</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>count($array)</code></td>
+      <td>Compter les éléments</td>
+    </tr>
+    <tr>
+      <td><code>in_array($value, $array, true)</code></td>
+      <td>Vérifier si une valeur est présente</td>
+    </tr>
+    <tr>
+      <td><code>array_search($value, $array)</code></td>
+      <td>Trouver l&apos;index ou la clé d&apos;une valeur</td>
+    </tr>
+    <tr>
+      <td><code>array_key_exists($key, $array)</code></td>
+      <td>Vérifier si une clé existe</td>
+    </tr>
+    <tr>
+      <td><code>array_map($callback, $array)</code></td>
+      <td>Transformer chaque élément</td>
+    </tr>
+    <tr>
+      <td><code>array_filter($array, $callback)</code></td>
+      <td>Garder seulement certains éléments</td>
+    </tr>
+    <tr>
+      <td><code>array_reduce($array, $callback, $initial)</code></td>
+      <td>Réduire le tableau à une seule valeur</td>
+    </tr>
+    <tr>
+      <td><code>array_sum($array)</code></td>
+      <td>Calculer la somme</td>
+    </tr>
+    <tr>
+      <td><code>array_keys($array)</code></td>
+      <td>Obtenir les clés</td>
+    </tr>
+    <tr>
+      <td><code>array_values($array)</code></td>
+      <td>Obtenir ou réindexer les valeurs</td>
+    </tr>
+    <tr>
+      <td><code>array_column($array, $key)</code></td>
+      <td>Extraire une colonne</td>
+    </tr>
+    <tr>
+      <td><code>sort($array)</code></td>
+      <td>Trier une liste en ordre croissant</td>
+    </tr>
+    <tr>
+      <td><code>rsort($array)</code></td>
+      <td>Trier une liste en ordre décroissant</td>
+    </tr>
+    <tr>
+      <td><code>asort($array)</code></td>
+      <td>Trier par valeur en conservant les clés</td>
+    </tr>
+    <tr>
+      <td><code>ksort($array)</code></td>
+      <td>Trier par clé</td>
+    </tr>
+    <tr>
+      <td><code>usort($array, $callback)</code></td>
+      <td>Trier avec une fonction personnalisée</td>
+    </tr>
+    <tr>
+      <td><code>array_merge($a, $b)</code></td>
+      <td>Fusionner des tableaux</td>
+    </tr>
+    <tr>
+      <td><code>array_slice($array, $start, $length)</code></td>
+      <td>Extraire une partie du tableau</td>
+    </tr>
+    <tr>
+      <td><code>array_splice($array, $start, $length, $replacement)</code></td>
+      <td>Remplacer une partie du tableau</td>
+    </tr>
+    <tr>
+      <td><code>array_unique($array)</code></td>
+      <td>Retirer les doublons</td>
+    </tr>
+    <tr>
+      <td><code>array_reverse($array)</code></td>
+      <td>Inverser l&apos;ordre</td>
+    </tr>
+    <tr>
+      <td><code>array_pop($array)</code></td>
+      <td>Retirer le dernier élément</td>
+    </tr>
+    <tr>
+      <td><code>array_shift($array)</code></td>
+      <td>Retirer le premier élément</td>
+    </tr>
+    <tr>
+      <td><code>array_unshift($array, $value)</code></td>
+      <td>Ajouter au début</td>
+    </tr>
+    <tr>
+      <td><code>$array[] = $value</code></td>
+      <td>Ajouter à la fin</td>
+    </tr>
+  </tbody>
+</table>
+
+<MarginNote type="definition" titre="Fonctions pures et fonctions qui modifient le tableau">
+Certaines fonctions retournent un nouveau tableau, comme `array_map`, `array_filter`, `array_merge` ou `array_slice`.
+D'autres modifient directement le tableau reçu, comme `sort`, `rsort`, `asort`, `ksort`, `usort`, `array_pop`, `array_shift`, `array_unshift` et `array_splice`.
+</MarginNote>
+
+## Les fonctions
+
+```php
+<?php
+function computeTotal($price, $quantity = 1) {
+  return $price * $quantity;
+}
+
+echo computeTotal(9.95);       // 9.95 (quantity vaut 1 par défaut)
+echo computeTotal(9.95, 3);    // 29.85
+```
+
+**En JavaScript :**
+
+```js
+function computeTotal(price, quantity = 1) {
+  return price * quantity;
+}
+
+console.log(computeTotal(9.95));      // 9.95
+console.log(computeTotal(9.95, 3));   // 29.85
+```
+
+<Aside type="exemple" title="Presque identique">
+La déclaration de fonction est très proche : mot-clé `function`, paramètres, valeurs par défaut, `return`. La seule différence visible est le `$` sur les paramètres en PHP. On peut aussi typer : `function computeTotal(float $price, int $quantity = 1): float`.
+</Aside>
+
+## La portée des variables : une vraie différence
+
+C'est ici que PHP et JavaScript divergent nettement.
+
+```php
+<?php
+$taux = 0.15;
+
+function pourboire($montant) {
+  // $taux n'existe PAS ici : les fonctions PHP ne voient pas
+  // les variables extérieures.
+  return $montant * 0.15;
+}
+```
+
+**En JavaScript**, une fonction **capture** les variables de son entourage (une *closure*) :
+
+```js
+let taux = 0.15;
+
+function pourboire(montant) {
+  return montant * taux;   // taux est visible ici
+}
+```
+
+{/* <Aside type="erreur" title="Le piège classique pour qui vient de JavaScript">
+En PHP, une fonction ne voit **pas** automatiquement les variables déclarées à l'extérieur. Passez-les en **paramètres** (la bonne pratique), ou, pour une fonction anonyme, importez-les explicitement avec `use` : `fn` et `function () use ($taux) { ... }`.
+</Aside> */}
+
+<Highlight couleur="ambre">Passez les données par paramètres et récupérez les résultats par `return`</Highlight> plutôt que de compter sur des variables globales : le code reste prévisible et testable.
+
+{/* <Checkpoint question="Pourquoi ce code PHP ne fonctionne-t-il pas comme en JavaScript ?">
+Parce qu'en PHP la fonction ne capture pas les variables extérieures. Contrairement à JavaScript, il faut passer `$taux` en paramètre, ou l'importer avec `use` dans une fonction anonyme.
+</Checkpoint> */}
+
+<Quiz
+  client:visible
+  question="En PHP, comment une fonction accède-t-elle à une variable déclarée à l'extérieur ?"
+  options={[
+    { texte: "Automatiquement, comme une closure JavaScript", correct: false },
+    { texte: "En la recevant en paramètre, ou via use pour une fonction anonyme", correct: true },
+    { texte: "Ce n'est jamais possible", correct: false },
+  ]}
+  retour="Les fonctions PHP ne capturent pas l'entourage. On passe la variable en paramètre, ou on l'importe avec use dans une fonction anonyme."
+/>
+
+<Quiz
+  client:visible
+  question="En PHP, le tableau indexé et le tableau associatif sont..."
+  options={[
+    { texte: "Deux types distincts, comme Array et Object en JavaScript", correct: false },
+    { texte: "Un seul et même type : array", correct: true },
+    { texte: "Réservés aux bases de données", correct: false },
+  ]}
+  retour="En PHP, tout est array. C'est la différence majeure avec JavaScript, qui sépare Array (listes) et Object (clé-valeur)."
+/>
+
+{/* ## Pour aller plus loin */}
+
+{/* Réunissez tableaux, boucles et fonctions dans l'[exercice de synthèse](../exercice-synthese-site-simple/), et consultez la [référence des bases](../reference-bases-php/) au besoin. */}

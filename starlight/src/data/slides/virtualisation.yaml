@@ -1,0 +1,359 @@
+title: Virtualisation et machines virtuelles
+
+# -----------------------------------------------------------
+# Visual definitions — reusable across cards
+# -----------------------------------------------------------
+# Primitives:
+#   stack:  vertical pile of elements (boxes or rows)
+#   row:    horizontal arrangement of elements
+#   box:    labeled colored rectangle
+#   split:  two columns with an optional separator
+#   label:  text label above a stack/element
+#
+# Colors: blue, green, amber, purple, surface, transparent
+# Each color resolves to Starlight CSS variables automatically.
+# -----------------------------------------------------------
+
+visuals:
+  resource-split:
+    type: split
+    separator: false
+    left:
+      type: box
+      text: "4 Go"
+      subtext: Hôte
+      color: blue
+      height: 70
+    right:
+      type: box
+      text: "4 Go"
+      subtext: VM
+      color: amber
+      height: 70
+
+  vm-stack:
+    type: stack
+    items:
+      - { text: Application, color: blue }
+      - { text: OS invité, color: blue }
+      - { text: Matériel virtuel, color: blue }
+      - { text: Hyperviseur, color: amber }
+      - { text: OS hôte, color: surface }
+      - { text: Matériel réel, color: surface }
+
+  container-stack:
+    type: stack
+    items:
+      - type: row
+        items:
+          - { text: App A, color: green }
+          - { text: App B, color: green }
+      - type: row
+        items:
+          - { text: Cont. A, color: green }
+          - { text: Cont. B, color: green }
+      - { text: Docker Engine, color: amber }
+      - { text: "OS hôte — 1 noyau", color: surface }
+      - { text: Matériel réel, color: surface }
+
+  dev-prod:
+    type: split
+    separator: "="
+    left:
+      type: box
+      text: Ta VM
+      subtext: Ubuntu + Node
+      color: blue
+      height: 60
+    right:
+      type: box
+      text: Serveur
+      subtext: Ubuntu + Node
+      color: green
+      height: 60
+
+  comparison:
+    type: row
+    gap: 6
+    items:
+      - type: labeled-stack
+        label: VM
+        labelColor: blue
+        items:
+          - { text: App, color: blue }
+          - { text: OS, color: blue }
+          - { text: "Mat. virt.", color: blue }
+          - { text: Hyperviseur, color: amber }
+      - type: labeled-stack
+        label: Conteneur
+        labelColor: green
+        items:
+          - { text: App, color: green }
+          - { text: Conteneur, color: green }
+          - { text: Docker, color: amber }
+          - { text: " ", color: transparent }
+
+# -----------------------------------------------------------
+# Sections
+# -----------------------------------------------------------
+
+sections:
+  - id: intro
+    tag: Introduction
+    title: Virtualisation
+    nav: Intro
+    content: |
+      Quand tu développes une application web, tu la codes sur ton ordinateur personnel. Mais cette application finira par tourner sur un **serveur** — un ordinateur distant, sous Linux, avec une configuration différente de la tienne.
+
+      La virtualisation est l'ensemble des techniques qui te permettent de *reproduire cet environnement serveur sur ta propre machine*, sans acheter un deuxième ordinateur.
+
+      Ce module couvre deux approches : les **machines virtuelles** et les **conteneurs**.
+    extended:
+      - |
+        Le problème est concret : tu codes une application Express sur Windows. Tout fonctionne. Tu la déploies sur un serveur Ubuntu — et elle plante. Les chemins de fichiers utilisent des `\` au lieu de `/`, une dépendance système manque, le comportement du réseau diffère.
+
+        La virtualisation élimine cette classe de problèmes en te donnant accès au *même système* que le serveur de production, directement sur ta machine.
+    asides:
+      - type: note
+        text: "Plus de 80% des serveurs web tournent sous Linux. Les commandes que tu apprendras dans ce cours sont les mêmes qu'en production."
+    cards:
+      - type: concept
+        label: Problème
+        text: "« Ça marche sur ma machine » — les environnements dev et prod divergent."
+      - type: concept
+        label: Solution
+        text: "La virtualisation aligne ton environnement local sur l'environnement serveur."
+
+  - id: hote
+    tag: Vocabulaire
+    title: Machine hôte et système hôte
+    nav: Hôte
+    content: |
+      Ton ordinateur physique — celui que tu touches — est la **machine hôte**. Le système installé dessus (Windows, macOS, Linux) est le **système hôte** (*host OS*).
+
+      Tout ce qui est virtualisé s'exécute *à l'intérieur* de cet hôte. L'hôte **prête ses ressources** (mémoire, processeur, disque) aux systèmes virtualisés.
+
+      Pendant qu'une machine virtuelle tourne, ton hôte dispose de ce qui reste. C'est un partage, pas une duplication.
+    extended:
+      - |
+        Le partage implique un arbitrage. Si ton ordinateur a 8 Go de RAM et que tu en alloues 4 à la VM, il t'en reste 4 pour Windows/macOS et tes applications. Les applications gourmandes côté hôte (navigateur, VS Code, Figma) ralentissent la VM, et inversement.
+
+        Règle de base : **ne jamais allouer plus de la moitié** de la RAM totale à la VM. Pour le CPU, 2 cœurs suffisent. Le disque virtuel utilise le *thin provisioning* — il ne consomme de l'espace réel qu'au fur et à mesure.
+    asides:
+      - type: term
+        title: Hôte / Invité
+        text: "L'hôte fournit les ressources. L'invité (guest) les consomme. Un hôte peut héberger plusieurs invités."
+      - type: caution
+        text: "Ne dépasse jamais la moitié de la RAM totale. 4 Go sur 8 Go est un bon équilibre."
+    cards:
+      - type: visual
+        label: Partage de ressources
+        visual: resource-split
+      - type: example
+        label: Configuration typique
+        text: "4 Go RAM, 2 cœurs CPU, 25 Go disque pour la VM. Le reste pour l'hôte."
+
+  - id: virtualisation
+    tag: Concept fondamental
+    title: "Qu'est-ce que la virtualisation?"
+    nav: Définition
+    content: |
+      La virtualisation consiste à créer une **version simulée** d'une ressource informatique — un ordinateur, un réseau, un espace de stockage — à l'aide d'un logiciel.
+
+      Dans ce cours, on s'intéresse à la **virtualisation de système** : simuler un ordinateur complet, avec son propre OS, à l'intérieur du tien.
+    extended:
+      - |
+        **Tester un autre système** — Installer Linux sur Windows sans toucher à Windows.
+
+        **Expérimenter sans risque** — Une erreur dans la VM ne touche pas ton système. Reviens en arrière avec un *snapshot*.
+      - |
+        **Isoler des projets** — Deux projets avec des versions de Node.js différentes? Chaque VM a sa propre configuration.
+
+        **Reproduire l'environnement de production** — Les serveurs tournent sous Linux. La VM te place dans les mêmes conditions.
+    asides:
+      - type: note
+        text: "La virtualisation existe depuis les années 1960 (IBM System/360). Popularisée sur PC par VMware à la fin des années 1990."
+    cards:
+      - type: concept
+        label: Tester
+        text: "Linux sur Windows sans remplacer Windows."
+      - type: concept
+        label: Expérimenter
+        text: "Erreurs sans conséquences — snapshots."
+      - type: concept
+        label: Isoler
+        text: "Configurations séparées par projet."
+      - type: concept
+        label: Reproduire
+        text: "Mêmes conditions que le serveur."
+
+  - id: vm
+    tag: Concept clé
+    title: La machine virtuelle
+    nav: VM
+    content: |
+      Une **machine virtuelle** (VM) est un ordinateur complet simulé par logiciel. Elle possède son propre OS, sa mémoire, son disque — mais tout est virtuel.
+
+      Du point de vue du système installé dans la VM, il *croit être sur un vrai ordinateur*.
+
+      La pièce maîtresse est l'**hyperviseur** — le logiciel qui crée et gère les VMs.
+    extended:
+      - |
+        **Type 1 (bare-metal)** — L'hyperviseur s'installe directement sur le matériel, *à la place* de l'OS. Centres de données, cloud (ESXi, KVM).
+
+        **Type 2 (hosted)** — L'hyperviseur s'installe comme une application *sur* un OS existant. Ton PC (VMware, VirtualBox).
+      - |
+        Chaque VM embarque un **OS complet**. C'est ce qui la rend puissante (isolation totale) mais aussi lourde (plusieurs Go par VM).
+
+        L'hyperviseur utilise les extensions du processeur (Intel VT-x / AMD-V) pour exécuter le code quasi-nativement. Seules les opérations privilégiées sont interceptées.
+    asides:
+      - type: term
+        title: Hyperviseur type 1
+        text: "Directement sur le matériel, sans OS hôte. Centres de données, cloud."
+      - type: term
+        title: Hyperviseur type 2
+        text: "Application sur un OS existant. Ton PC (VMware, VirtualBox)."
+    cards:
+      - type: visual
+        label: Architecture VM
+        visual: vm-stack
+      - type: example
+        label: Outils
+        text: "VMware Workstation/Fusion, VirtualBox, KVM, Hyper-V."
+
+  - id: vm-web
+    tag: Application web
+    title: VM en développement web
+    nav: VM + Web
+    content: |
+      Tu développes une app Express sur Windows. La production est Ubuntu Linux.
+
+      Avec une **VM Ubuntu** :
+
+      1. `sudo apt install nodejs` — même commande qu'en production.
+      2. `node index.js` — même environnement, mêmes résultats.
+      3. Si tu casses quelque chose → *snapshot* → retour en arrière.
+    extended:
+      - |
+        La VM te familiarise aussi avec les **outils d'administration** : gestion des services (`systemctl`), configuration réseau, gestion des logs.
+
+        Tu peux configurer un **dossier partagé** : éditer dans VS Code sur Windows, exécuter dans Linux.
+    asides:
+      - type: tip
+        text: "Snapshot avant chaque installation risquée — tu pourras toujours revenir en arrière."
+    cards:
+      - type: visual
+        label: Dev → Prod
+        visual: dev-prod
+      - type: example
+        label: Commandes identiques
+        text: "apt, systemctl, chmod, node — identiques VM et production."
+
+  - id: conteneur
+    tag: Concept clé
+    title: Le conteneur
+    nav: Conteneur
+    content: |
+      Un **conteneur** est un environnement isolé qui **partage le noyau** de l'hôte au lieu d'embarquer son propre OS.
+
+      Il empaquète une application avec ses dépendances dans un paquet léger et portable. L'outil le plus connu est **Docker**.
+
+      Contrairement à la VM, le conteneur isole uniquement l'*espace utilisateur*.
+    extended:
+      - |
+        L'isolation repose sur deux mécanismes du noyau Linux :
+
+        **Namespaces** — séparent ce que chaque conteneur *voit* (processus, réseau, fichiers).
+
+        **Cgroups** — limitent ce que chaque conteneur *consomme* (RAM, CPU).
+      - |
+        Le noyau reste unique. Résultat : pas de noyau dupliqué, pas de matériel émulé. Un conteneur démarre en secondes là où une VM prend des minutes.
+    asides:
+      - type: term
+        title: Namespaces
+        text: "Chaque conteneur a sa propre vue des processus, du réseau et des fichiers."
+      - type: term
+        title: Cgroups
+        text: "Limitent la RAM, le CPU et les I/O par conteneur."
+    cards:
+      - type: visual
+        label: Architecture
+        visual: container-stack
+      - type: example
+        label: Outils
+        text: "Docker, Podman, containerd, Docker Compose."
+
+  - id: conteneur-web
+    tag: Application web
+    title: Conteneur en développement web
+    nav: Conteneur + Web
+    content: |
+      Ton app utilise Node.js 20, PostgreSQL 16, Redis 7. Avec Docker :
+
+      ```yaml
+      services:
+        app:
+          image: node:20
+          ports: ["3000:3000"]
+        db:
+          image: postgres:16
+        cache:
+          image: redis:7
+      ```
+
+      `docker compose up` démarre les trois services, chacun isolé, versions exactes.
+    extended:
+      - |
+        Un **Dockerfile** décrit comment construire un conteneur. Une **image** est le résultat — partageable via **Docker Hub** (le « npm des conteneurs »).
+
+        Ton collègue exécute la même commande et obtient exactement le même environnement.
+    asides:
+      - type: term
+        title: Dockerfile
+        text: "Recette : fichiers à copier, dépendances, commande de démarrage."
+      - type: term
+        title: Image
+        text: "Paquet prêt à l'emploi, partageable via Docker Hub."
+    cards:
+      - type: example
+        label: Reproductibilité
+        text: "Même commande = même environnement, toute l'équipe."
+      - type: concept
+        label: Docker Hub
+        text: "Registre public — node:20, postgres:16 sont des images officielles."
+
+  - id: comparaison
+    tag: Synthèse
+    title: VM vs Conteneur
+    nav: Comparaison
+    contentType: comparison
+    comparison:
+      headers: ["", "VM", "Conteneur"]
+      rows:
+        - ["Simulé", "Ordinateur complet", "Espace utilisateur"]
+        - ["Noyau", "Propre noyau", "Noyau partagé"]
+        - ["Taille", "Plusieurs Go", "Mo à centaines de Mo"]
+        - ["Démarrage", "30s — minutes", "Secondes"]
+        - ["Isolation", "Forte (hyperviseur)", "Légère (namespaces)"]
+        - ["Outils", "VMware, VirtualBox", "Docker, Podman"]
+    content: |
+      Les deux coexistent. Un serveur peut être une VM qui exécute des conteneurs. Ils résolvent des problèmes différents.
+    extended:
+      - |
+        **VM** — OS complet différent, isolation forte, tests système.
+
+        **Conteneur** — empaqueter une app, démarrage rapide, CI/CD.
+
+        **WSL2** — hybride : VM légère + vrai noyau Linux intégré dans Windows. Excellent pour le dev quotidien. On utilise VMware dans ce cours pour mieux comprendre le système.
+    asides:
+      - type: tip
+        text: "VM = OS différent. Conteneur = empaqueter une app."
+      - type: note
+        text: "WSL2 : VM légère + noyau Linux, intégré dans Windows."
+    cards:
+      - type: visual
+        label: Comparaison
+        visual: comparison
+      - type: concept
+        label: Ce cours
+        text: "VMware pour apprendre."

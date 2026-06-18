@@ -1,0 +1,500 @@
+title: Gestionnaire de paquets
+
+# -----------------------------------------------------------
+# Visual definitions — reusable across cards
+# -----------------------------------------------------------
+# Primitives:
+#   stack:  vertical pile of elements (boxes or rows)
+#   row:    horizontal arrangement of elements
+#   box:    labeled colored rectangle
+#   split:  two columns with an optional separator
+#   label:  text label above a stack/element
+#
+# Colors: blue, green, amber, purple, surface, transparent
+# Each color resolves to Starlight CSS variables automatically.
+# -----------------------------------------------------------
+
+visuals:
+  gps-analogy:
+    type: split
+    separator: "≈"
+    left:
+      type: box
+      text: GPS
+      subtext: "Cartes + mises à jour"
+      color: blue
+      height: 60
+    right:
+      type: box
+      text: App Node.js
+      subtext: "Paquets npm"
+      color: green
+      height: 60
+
+  paquet-anatomy:
+    type: stack
+    items:
+      - { text: Code source, color: blue }
+      - { text: Documentation, color: blue }
+      - { text: Métadonnées (version…), color: amber }
+      - { text: Liste de dépendances, color: amber }
+      - { text: Scripts d'installation, color: surface }
+
+  dependency-tree:
+    type: stack
+    items:
+      - { text: Ton application, color: green }
+      - type: row
+        items:
+          - { text: Paquet A, color: blue }
+          - { text: Paquet B, color: blue }
+      - type: row
+        items:
+          - { text: C, color: amber }
+          - { text: D, color: amber }
+          - { text: E, color: amber }
+
+  os-vs-projet:
+    type: split
+    separator: false
+    left:
+      type: labeled-stack
+      label: "OS (apt)"
+      labelColor: blue
+      items:
+        - { text: nginx, color: blue }
+        - { text: Node.js, color: blue }
+        - { text: Système entier, color: surface }
+    right:
+      type: labeled-stack
+      label: "Projet (npm)"
+      labelColor: green
+      items:
+        - { text: express, color: green }
+        - { text: lodash, color: green }
+        - { text: Dossier projet, color: surface }
+
+  manager-pipeline:
+    type: stack
+    items:
+      - { text: "1. Résoudre les dépendances", color: blue }
+      - { text: "2. Télécharger + vérifier", color: blue }
+      - { text: "3. Gérer conflits de version", color: amber }
+      - { text: "4. Installer / Mettre à jour", color: green }
+      - { text: "Dépôt / Registry", color: surface }
+
+  sources-stack:
+    type: stack
+    items:
+      - type: row
+        items:
+          - { text: sources.list, color: blue }
+          - { text: registry.npmjs.org, color: green }
+      - type: row
+        items:
+          - { text: "Paquets .deb signés", color: blue }
+          - { text: "Paquets npm publics", color: green }
+      - { text: "Vérification d'intégrité", color: amber }
+
+  npm-ecosystem:
+    type: stack
+    items:
+      - { text: "npm install / npm update", color: green }
+      - { text: node_modules, color: green }
+      - { text: "package.json + package-lock.json", color: amber }
+      - { text: "registry.npmjs.org — 2M+ paquets", color: surface }
+
+  semver-split:
+    type: split
+    separator: false
+    left:
+      type: box
+      text: "1.2.3 → 1.2.4"
+      subtext: "Correctif (patch)"
+      color: green
+      height: 60
+    right:
+      type: box
+      text: "1.x → 2.0"
+      subtext: "Rupture (major)"
+      color: amber
+      height: 60
+
+  alternatives-row:
+    type: row
+    gap: 6
+    items:
+      - type: labeled-stack
+        label: npm
+        labelColor: blue
+        items:
+          - { text: node_modules, color: blue }
+          - { text: Séquentiel, color: blue }
+      - type: labeled-stack
+        label: pnpm
+        labelColor: green
+        items:
+          - { text: Store global, color: green }
+          - { text: Liens symb., color: green }
+      - type: labeled-stack
+        label: Bun
+        labelColor: amber
+        items:
+          - { text: Runtime natif, color: amber }
+          - { text: Vitesse brute, color: amber }
+
+  probleme-cascade:
+    type: stack
+    items:
+      - { text: "Ton projet", color: green }
+      - { text: "express (v4)", color: blue }
+      - { text: "body-parser (v1.20)", color: blue }
+      - { text: "raw-body (v2.5)", color: amber }
+      - { text: "iconv-lite (v0.6) — ⚠ faille", color: amber }
+
+# -----------------------------------------------------------
+# Sections
+# -----------------------------------------------------------
+
+sections:
+  - id: intro
+    tag: Introduction
+    title: "Qu'est-ce qu'un paquet?"
+    nav: Intro
+    content: |
+      Quand tu développes une application web, tu ne pars jamais de zéro. Tu assembles des **composants logiciels** créés par d'autres : une librairie pour gérer les dates, un module pour valider des formulaires, un *framework* pour structurer ton interface.
+
+      Chacun de ces composants est distribué sous forme de **paquet** (*package*) — un ensemble regroupant du code, de la documentation, des métadonnées et une liste de dépendances.
+
+      Un paquet, c'est une **unité de distribution** : un bloc autonome qu'on peut télécharger, installer et intégrer dans un projet.
+    extended:
+      - |
+        Que ce soit un module Node.js, un *gem* Ruby, un *crate* Rust ou un paquet `.deb` sous Ubuntu, le principe reste le même : empaqueter du logiciel pour qu'il soit facilement partageable et réutilisable.
+
+        L'idée est simple — ne pas réinventer la roue. Mais dès qu'on assemble des dizaines de briques créées par des gens qui ne se connaissent pas, la gestion de ces briques devient un problème à part entière.
+    asides:
+      - type: note
+        text: "Le terme « paquet » vient de l'idée d'empaqueter : regrouper tout ce qu'il faut (code, docs, dépendances) dans un seul livrable."
+    cards:
+      - type: visual
+        label: Anatomie d'un paquet
+        visual: paquet-anatomy
+      - type: concept
+        label: Principe
+        text: "Un paquet = une unité de distribution réutilisable, partageable et installable."
+
+  - id: analogie
+    tag: Analogie
+    title: Le GPS et ses cartes
+    nav: Analogie GPS
+    content: |
+      Imagine ton GPS automobile. Il est livré avec un jeu de cartes de base. Mais ces cartes ne sont pas figées :
+
+      **Nouvelles routes** → tu dois télécharger des mises à jour.
+
+      **Format qui évolue** → les cartes doivent rester compatibles avec le logiciel du GPS.
+
+      **Nouvelle région** → tu ajoutes un paquet de cartes supplémentaire.
+
+      **Données liées** → certaines cartes dépendent de points d'intérêt et de limites de vitesse.
+    extended:
+      - |
+        L'analogie est directe. Remplace « GPS » par « ton application Node.js » et « cartes » par « paquets npm » : des composants qu'on ajoute, qu'on met à jour et qui doivent rester compatibles entre eux.
+
+        Et comme pour le GPS, gérer ces cartes manuellement fonctionne quand tu en as trois. Quand tu en as trois cents, il te faut un système automatisé.
+    asides:
+      - type: tip
+        text: "GPS → application. Cartes → paquets. Compatibilité du format → compatibilité des versions."
+    cards:
+      - type: visual
+        label: Le parallèle
+        visual: gps-analogy
+      - type: concept
+        label: Point clé
+        text: "Mêmes enjeux : ajout, mise à jour, compatibilité, dépendances."
+
+  - id: paquet-os
+    tag: Système
+    title: Paquets au niveau de l'OS
+    nav: Paquets OS
+    content: |
+      Cette logique ne se limite pas au développement web. Ton **système d'exploitation** lui-même est composé de paquets.
+
+      Sous Ubuntu, Firefox, nano, Apache — tout est un paquet. Le noyau Linux lui-même est distribué comme un paquet.
+
+      Un paquet OS installe des logiciels **au niveau du système entier**. Un paquet npm installe des dépendances **au niveau d'un projet**. Même principe, portée différente.
+    extended:
+      - |
+        Au niveau de l'OS, un paquet contient typiquement les fichiers binaires (programmes exécutables), les fichiers de configuration par défaut, la documentation (pages `man`), la liste des dépendances et des scripts d'installation.
+      - |
+        La distinction est importante : quand tu fais `sudo apt install nodejs`, Node.js est disponible pour tous les utilisateurs du système. Quand tu fais `npm install express`, Express est disponible uniquement dans le dossier de ton projet.
+    asides:
+      - type: term
+        title: Paquet OS
+        text: "Logiciel installé au niveau système, disponible pour tous les utilisateurs."
+      - type: term
+        title: Paquet de développement
+        text: "Dépendance installée au niveau d'un projet spécifique."
+    cards:
+      - type: visual
+        label: Deux portées
+        visual: os-vs-projet
+      - type: example
+        label: Exemples
+        text: "OS : nginx, git, curl. Projet : express, react, lodash."
+
+  - id: besoin
+    tag: Problème
+    title: Pourquoi un gestionnaire?
+    nav: Le besoin
+    content: |
+      Dès que tu travailles avec plus d'une poignée de paquets, la gestion manuelle devient irréaliste :
+
+      **Dépendances en chaîne** — le paquet A dépend de B, qui dépend de C et D.
+
+      **Conflits de version** — A a besoin de B v2.x, mais D a besoin de B v3.x.
+
+      **Mises à jour risquées** — mettre à jour C pourrait rendre D incompatible.
+
+      **Failles de sécurité** — il faut savoir quels paquets sont affectés.
+    extended:
+      - |
+        Le nombre de dépendances explose vite. Un projet Node.js qui utilise Express tire à lui seul une trentaine de sous-dépendances. Un projet React typique en compte des centaines. Gérer tout ça à la main — trouver les bons paquets, les bonnes versions, les installer dans le bon ordre — est simplement impossible.
+
+        C'est pourquoi on délègue ce travail à un **gestionnaire de paquets**.
+    asides:
+      - type: caution
+        text: "Un projet Express simple peut avoir 30+ sous-dépendances. Un projet React, des centaines."
+    cards:
+      - type: visual
+        label: Arbre de dépendances
+        visual: dependency-tree
+      - type: concept
+        label: Constat
+        text: "La gestion manuelle ne passe pas à l'échelle. L'automatisation est indispensable."
+
+  - id: role
+    tag: Concept clé
+    title: Rôle du gestionnaire
+    nav: Rôle
+    content: |
+      Un gestionnaire de paquets **automatise** l'installation, la mise à jour, la configuration et la suppression de paquets.
+
+      Il résout les dépendances, télécharge depuis un dépôt fiable, vérifie l'intégrité, gère les conflits de version et assure le suivi de ce qui est installé.
+    extended:
+      - |
+        Concrètement, quand tu exécutes `npm install express`, le gestionnaire consulte le *registry*, télécharge Express et ses 30 dépendances, vérifie que les versions sont compatibles entre elles, les place dans `node_modules`, et enregistre les versions exactes dans `package-lock.json`.
+
+        L'opération inverse (`npm uninstall`) retire le paquet *et* nettoie ses dépendances orphelines.
+      - |
+        **Ce qu'un gestionnaire ne fait pas** : il ne garantit pas que le code est sûr ou de qualité. Il ne vérifie pas si un paquet contient du code malveillant. Il se fie aux déclarations de version faites par les auteurs — la confiance repose sur l'écosystème et ses pratiques de publication.
+    asides:
+      - type: caution
+        text: "Le gestionnaire ne garantit pas la sécurité du code. Il automatise la logistique, pas l'audit."
+      - type: term
+        title: Résolution de dépendances
+        text: "Trouver une combinaison de versions qui satisfait toutes les contraintes de tous les paquets."
+    cards:
+      - type: visual
+        label: Pipeline
+        visual: manager-pipeline
+      - type: example
+        label: En une commande
+        text: "npm install express → 30+ paquets téléchargés, vérifiés, installés."
+
+  - id: gestionnaires
+    tag: Écosystèmes
+    title: Gestionnaires par OS
+    nav: Par OS
+    content: |
+      Chaque famille d'OS a ses propres conventions et gestionnaires :
+
+      **Debian/Ubuntu** — `apt` gère les paquets `.deb`, s'appuie sur `dpkg`.
+
+      **Fedora/RHEL** — `dnf` (anciennement `yum`) gère les paquets `.rpm`.
+
+      **macOS** — pas de gestionnaire natif. **Homebrew** (`brew`) comble ce manque.
+
+      **Windows** — historiquement `.msi` / `.exe` manuels. **winget** depuis Windows 10.
+    extended:
+      - |
+        Les commandes suivent le même patron partout :
+
+        `apt install nginx` · `dnf install httpd` · `brew install node` · `winget install Node.js`
+
+        `apt upgrade` · `dnf update` · `brew upgrade` · `winget upgrade --all`
+
+        En développement web, tu utilises typiquement **deux gestionnaires en parallèle** : `apt` pour les outils système (Node.js, nginx) et `npm` pour les dépendances de ton projet. Les deux coexistent, chacun à sa couche.
+    asides:
+      - type: tip
+        text: "Serveur web Linux : apt pour les outils système, npm pour les dépendances du projet. Deux couches, deux gestionnaires."
+      - type: note
+        text: "Les gestionnaires OS privilégient la stabilité : les versions disponibles sont souvent en retard par rapport aux dernières sorties."
+    cards:
+      - type: concept
+        label: apt (Debian)
+        text: "Paquets .deb — le standard des serveurs web Ubuntu."
+      - type: concept
+        label: Homebrew
+        text: "Le gestionnaire communautaire de macOS — brew install."
+      - type: concept
+        label: winget
+        text: "Le gestionnaire en ligne de commande de Windows 10+."
+      - type: concept
+        label: npm
+        text: "Le gestionnaire de l'écosystème Node.js — couche projet."
+
+  - id: sources
+    tag: Infrastructure
+    title: Sources et installation manuelle
+    nav: Sources
+    content: |
+      Un gestionnaire ne cherche pas les paquets « sur Internet en général ». Il consulte des **dépôts** (*repositories* ou *registries*) précis et configurés.
+
+      Pour `apt` : les dépôts dans `/etc/apt/sources.list`. Pour npm : `registry.npmjs.org`.
+
+      Un paquet absent de tout dépôt configuré est **invisible** pour le gestionnaire.
+    extended:
+      - |
+        **Ajouter un dépôt tiers** (un PPA sous Ubuntu, un *registry* privé pour npm) introduit un risque : tu fais confiance à un éditeur externe. Les dépôts officiels privilégient la stabilité — c'est un choix délibéré.
+      - |
+        On *peut* installer un paquet sans gestionnaire : télécharger un `.deb` et lancer `dpkg -i`, ou copier un fichier JavaScript directement. Mais on perd la résolution de dépendances, le suivi, la vérification d'intégrité. Chaque paquet installé manuellement est un paquet qu'on devra **maintenir manuellement**.
+    asides:
+      - type: caution
+        text: "Dépôt tiers = confiance externe. Évalue la source avant de l'ajouter."
+      - type: term
+        title: Installation manuelle
+        text: "Possible mais déconseillée — aucun suivi, aucune résolution de dépendances."
+    cards:
+      - type: visual
+        label: Sources de données
+        visual: sources-stack
+      - type: example
+        label: Quand c'est justifié
+        text: "Paquet propriétaire, version spécifique, ou environnement sans réseau."
+
+  - id: npm
+    tag: Analyse
+    title: Le gestionnaire npm
+    nav: npm
+    content: |
+      npm (*Node Package Manager*) est le gestionnaire par défaut de Node.js. Il donne accès au plus grand *registry* de paquets au monde.
+
+      `package.json` déclare les dépendances. `package-lock.json` fige les versions exactes. `npm install` reproduit l'environnement. `npm audit` identifie les failles.
+    extended:
+      - |
+        **Forces** — écosystème massif (2M+ paquets), intégré à Node.js, reproductibilité via le *lockfile*, publication gratuite et ouverte.
+      - |
+        **Faiblesses** — performance historiquement lente, arbre de dépendances profond (`node_modules` avec des milliers de fichiers), sécurité par confiance (risque de *typosquatting* et d'injection de code malveillant), duplication sur disque (chaque projet a sa copie de `node_modules`).
+    asides:
+      - type: tip
+        text: "npm audit — commande essentielle pour identifier les vulnérabilités connues dans tes dépendances."
+      - type: caution
+        text: "N'importe qui peut publier sur npm. Typosquatting : un paquet nommé lod-ash au lieu de lodash peut contenir du code malveillant."
+    cards:
+      - type: visual
+        label: Écosystème npm
+        visual: npm-ecosystem
+      - type: visual
+        label: Versionnement sémantique
+        visual: semver-split
+
+  - id: alternatives
+    tag: Alternatives
+    title: Au-delà de npm
+    nav: Alternatives
+    content: |
+      Les limitations de npm ont motivé la création d'outils alternatifs :
+
+      **Yarn** — *lockfile* et installation parallèle (Facebook, 2016). Innovations reprises par npm.
+
+      **pnpm** — store global avec liens symboliques. Élimine la duplication.
+
+      **Bun** — *runtime* complet avec gestionnaire intégré. Vitesse brute.
+
+      **Deno** — pas de `node_modules`, imports par URL. Compatibilité npm depuis v2.
+    extended:
+      - |
+        **Yarn Berry** (v2+) propose le mode *Plug'n'Play* : plus de `node_modules` du tout. Les dépendances sont stockées dans des fichiers `.zip` et résolues par un fichier de mapping.
+
+        **pnpm** attaque le problème du disque : dix projets utilisant React partagent une seule copie. Liens symboliques vers un store centralisé.
+      - |
+        **Bun** et **Deno** vont plus loin — ils remplacent Node.js lui-même, pas seulement npm. Bun mise sur la performance pure (installation en fraction de seconde). Deno repense le modèle de sécurité (permissions explicites) et le système de modules (imports URL).
+
+        Tous restent compatibles avec le *registry* npm — preuve que le vrai capital est dans les paquets, pas dans l'outil.
+    asides:
+      - type: note
+        text: "Deno est créé par Ryan Dahl, le créateur original de Node.js — une « deuxième chance » pour corriger les erreurs de design."
+      - type: tip
+        text: "Tous ces outils sont compatibles avec le registry npm. Le capital est dans les paquets, pas dans l'outil."
+    cards:
+      - type: visual
+        label: Trois approches
+        visual: alternatives-row
+      - type: concept
+        label: Point commun
+        text: "Tous compatibles avec le registry npm — les paquets sont la vraie valeur."
+
+  - id: probleme
+    tag: Synthèse
+    title: Le problème de fond
+    nav: Problème
+    content: |
+      Au-delà des outils, la prolifération de gestionnaires révèle un problème systémique. La question fondamentale :
+
+      **Comment coordonner le travail de millions de développeurs indépendants qui ne se connaissent pas, tout en garantissant que l'assemblage de leurs contributions reste fonctionnel et sécuritaire?**
+
+      Aucun outil n'a encore résolu cette question de manière définitive.
+    extended:
+      - |
+        **Dépendances en cascade** — un paquet simple tire des centaines de sous-dépendances, chacune maintenue par une équipe différente. L'incident *left-pad* (2016) : un développeur retire un paquet de 11 lignes, des milliers de projets cassent.
+
+        **Besoins divergents** — les auteurs veulent innover, les consommateurs veulent la stabilité. Le versionnement sémantique tente de réconcilier les deux, mais reste une convention fragile.
+      - |
+        **Manque de communication** — quand un auteur change son interface, les mainteneurs en aval ne sont pas nécessairement prévenus. Les ruptures se propagent silencieusement.
+
+        **Absence de régulation centralisée** — contrairement aux dépôts Linux officiels (paquets sélectionnés et testés), npm est largement ouvert. Innovation et risque vont ensemble.
+
+        Ce problème existe partout : pip (Python), Cargo (Rust), Maven (Java), Composer (PHP).
+    asides:
+      - type: note
+        text: "left-pad (2016) : un paquet de 11 lignes retiré de npm → des milliers de builds cassés dans le monde."
+      - type: caution
+        text: "Le versionnement sémantique est une convention, pas un contrat. Rien n'empêche un auteur de publier un changement cassant en version patch."
+    cards:
+      - type: visual
+        label: Cascade de dépendances
+        visual: probleme-cascade
+      - type: concept
+        label: Tension centrale
+        text: "Innovation (auteurs) vs stabilité (consommateurs) — un équilibre jamais résolu."
+
+  - id: contribuer
+    tag: Pour aller plus loin
+    title: Créer ou contribuer à un paquet
+    nav: Contribuer
+    content: |
+      Créer un paquet npm : `npm init` → écrire le code → documenter (`README.md`) → tester localement (`npm link`) → publier (`npm publish`) → maintenir.
+
+      Contribuer à un paquet existant : signaler un bogue (*issue*), proposer une correction (*pull request*), améliorer la documentation, participer aux discussions.
+    extended:
+      - |
+        La création suit un cycle simple : initialiser le `package.json`, exposer une interface claire via `module.exports` ou des exports ES modules, écrire un `README.md` complet, tester avec `npm link` dans un autre projet, puis publier.
+
+        Maintenir signifie corriger les bogues, répondre aux *issues*, et publier des mises à jour en respectant le versionnement sémantique.
+      - |
+        Contribuer ne signifie pas forcément écrire du code. Améliorer la documentation est souvent le point faible des paquets et une contribution très appréciée.
+
+        Des contributions visibles sur GitHub — même modestes — constituent un portfolio concret. Les recruteurs en développement web consultent régulièrement les profils GitHub.
+    asides:
+      - type: tip
+        text: "npm link crée un lien symbolique — tu peux tester ton paquet dans un autre projet sans le publier."
+      - type: note
+        text: "Des contributions GitHub, même modestes, sont un portfolio concret pour les recruteurs."
+    cards:
+      - type: example
+        label: Cycle de publication
+        text: "npm init → code → README → npm link → npm publish → maintenance."
+      - type: concept
+        label: Contribuer sans coder
+        text: "Documentation, signalement de bogues, discussions — tout compte."

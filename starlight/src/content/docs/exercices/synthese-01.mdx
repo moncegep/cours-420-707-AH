@@ -1,0 +1,126 @@
+---
+title: "Synthèse : un site dynamique simple"
+description: Exercice de synthèse pour construire un petit site PHP dynamique avec tableaux, inclusions et formulaire validé.
+sidebar:
+  order: 2
+---
+
+import { Aside, Steps, Badge, FileTree, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Cet exercice de synthèse réunit tout ce qui a été vu jusqu'ici : variables, conditions, boucles, tableaux, fonctions, inclusions de fichiers et traitement d'un formulaire. Aucune base de données n'est encore requise : les données vivent dans des tableaux PHP. La base de données viendra à la phase suivante.
+
+## Contexte
+
+La **Cabane à sucre L'Érablière dorée** veut un petit site pour présenter ses produits et recevoir des messages de clients. Vous jouez le rôle de la personne qui développe la partie serveur du site.
+
+## Objectifs d'apprentissage
+
+Au terme de l'exercice, vous serez capable de :
+
+- structurer un petit site en plusieurs pages partageant un en-tête et un pied de page communs ;
+- générer du contenu HTML à partir de données PHP plutôt que de l'écrire à la main ;
+- recevoir, valider et traiter une donnée envoyée par un formulaire ;
+- organiser votre code pour qu'il reste lisible et maintenable.
+
+<Aside type="note" title="Lien avec la compétence">
+Cet exercice mobilise une partie de la compétence AF56 (utiliser un langage de programmation) et prépare le passage au modèle MVC de la phase 2.
+</Aside>
+
+## Ce que vous devez livrer
+
+Un site de **trois pages** plus des fichiers partagés :
+
+<Steps>
+
+1. **Accueil** (`index.php`) : présentation du commerce et lien vers les autres pages.
+
+2. **Produits** (`produits.php`) : la liste des produits (nom, description, prix) générée par une boucle `foreach` à partir d'un tableau PHP. Le total des produits offerts est affiché en bas.
+
+3. **Contact** (`contact.php`) : un formulaire (nom, courriel, message) qui, une fois soumis, est **validé côté serveur**. En cas d'erreur, les messages sont affichés et les valeurs déjà saisies sont conservées. En cas de succès, un message de confirmation remplace le formulaire.
+
+</Steps>
+
+Les trois pages partagent le même en-tête et le même pied de page, **inclus** depuis des fichiers communs (pas de copier-coller du HTML).
+
+## Structure de fichiers suggérée
+
+<FileTree>
+
+- htdocs/erabliere/
+  - index.php
+  - produits.php
+  - contact.php
+  - includes/
+    - header.php
+    - footer.php
+  - data/
+    - products.php
+  - css/
+    - style.css
+
+</FileTree>
+
+<Aside type="tip">
+`data/products.php` ne contient qu'un tableau retourné par `return [...];`. Vous le chargez ensuite avec `$products = require __DIR__ . "/data/products.php";`. Cela sépare les **données** du **code d'affichage**, une première étape vers le MVC.
+</Aside>
+
+## Démarche proposée
+
+<Steps>
+
+1. **En-tête et pied de page partagés.** Créez `includes/header.php` (début du HTML, barre de navigation) et `includes/footer.php` (fin du HTML). Chaque page fait `include __DIR__ . "/includes/header.php";` au début et l'équivalent pour le pied à la fin.
+
+2. **Données.** Dans `data/products.php`, déclarez un tableau d'au moins quatre produits. Chaque produit est un tableau associatif :
+
+   ```php
+   <?php
+   return [
+     ["name" => "Sirop d'érable 540 ml", "description" => "Récolte de printemps", "price" => 14.50],
+     ["name" => "Beurre d'érable 250 g",  "description" => "Onctueux",            "price" => 9.95],
+     // ...
+   ];
+   ```
+
+3. **Page Produits.** Chargez le tableau, parcourez-le avec `foreach`, et générez une ligne de tableau HTML par produit. Affichez le nombre total avec `count(...)`.
+
+4. **Page Contact.** Réutilisez le patron du formulaire validé : détecter la soumission, récupérer chaque champ avec `?? ""`, valider, puis afficher soit les erreurs, soit la confirmation. Validez au minimum : nom non vide, courriel au bon format (`filter_var($email, FILTER_VALIDATE_EMAIL)`), message non vide.
+
+5. **Finition.** Une feuille de style simple et une navigation cohérente entre les pages.
+
+</Steps>
+
+## Contraintes techniques
+
+- Les identifiants (variables, fonctions, clés de tableau) sont en **anglais** ; le texte affiché est en **français**.
+- Aucune donnée de formulaire n'est utilisée sans validation préalable.
+- Le HTML répété (en-tête, pied de page) est centralisé par inclusion.
+- Échappez le texte affiché provenant de l'utilisateur avec `htmlspecialchars(...)` pour éviter l'injection de HTML.
+
+<Aside type="danger" title="Sécurité minimale">
+Tout texte saisi par un visiteur et réaffiché (par exemple le nom dans le message de confirmation) doit passer par `htmlspecialchars(...)`. C'est la défense de base contre l'injection de contenu dans la page.
+</Aside>
+
+## Critères d'évaluation
+
+| Critère | Description | Points |
+| --- | --- | --- |
+| Structure et inclusions | En-tête et pied de page partagés, organisation claire des fichiers | 20 |
+| Génération dynamique | Liste des produits générée par boucle à partir du tableau | 20 |
+| Formulaire et validation | Validation serveur complète, gestion et affichage des erreurs | 30 |
+| Robustesse et sécurité | `??` pour les entrées, `htmlspecialchars` à l'affichage, aucun avertissement PHP | 15 |
+| Lisibilité du code | Nommage cohérent, indentation, absence de répétition inutile | 15 |
+| **Total** | | **100** |
+
+## Pistes bonus
+
+- Marquer le lien de la page courante comme actif dans la barre de navigation.
+- Extraire l'affichage d'un produit dans une fonction `renderProduct($product)`.
+- Trier les produits par prix avant l'affichage avec `usort(...)`.
+
+## Livrables
+
+Le dossier complet du site, prêt à être déposé dans `htdocs` et exécuté sous XAMPP, accompagné d'un court fichier `README.md` expliquant comment lancer le site.
+
+<Aside type="note">
+Si vous bloquez sur un point, revoyez d'abord l'[introduction à PHP](../cours/01-introduction.mdx) et la [référence des bases](../reference/ref-php.mdx) avant de demander de l'aide.
+</Aside>

@@ -1,0 +1,205 @@
+---
+title: Navigation et composition de pages
+description: Naviguer entre les pages d'un site PHP, composer une page à partir de parties réutilisables, et maîtriser les mécanismes d'import.
+sidebar:
+  order: 5
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+
+Un site PHP est généralement constitué de plusieurs pages **assemblées à partir de parties communes**. 
+{/* Cette page répond à trois questions : comment passer d'une page à l'autre, comment composer une page à partir de morceaux réutilisables, et comment fonctionnent les mécanismes d'import qui rendent tout cela possible. */}
+
+## Naviguer entre les pages
+
+Chaque page d'un site PHP est un **fichier** distinct (`index.php`, `produits.php`, `contact.php`). Aller d'une page à l'autre, c'est faire une **nouvelle requête** : un lien HTML ordinaire suffit.
+
+```html
+<nav>
+  <a href="index.php">Accueil</a>
+  <a href="produits.php">Produits</a>
+  <a href="contact.php">Contact</a>
+</nav>
+```
+
+Cliquer un lien envoie une requête au serveur, qui exécute le fichier ciblé et renvoie le HTML produit. Rien de magique : c'est le cycle d'une requête, répété.
+
+<Aside type="attention" title="Deux sortes de chemins à ne pas confondre">
+Le `href` d'un lien est un **chemin d'URL**, interprété par le navigateur. Le chemin d'un `include` (vu plus bas) est un **chemin de fichier**, interprété par le serveur. `href="produits.php"` et `include "includes/header.php"` n'obéissent pas aux mêmes règles : l'un vise une adresse web, l'autre un fichier sur le disque.
+</Aside>
+
+On peut aussi **transporter une donnée** dans le lien, via la chaîne de requête :
+
+```html
+<a href="produit.php?id=2">Voir le détail</a>
+```
+
+La page `produit.php` lira alors `$_GET["id"]`. Les superglobales et la validation de ces données sont approfondies plus loin dans le cours ; retenez pour l'instant que la navigation peut porter des paramètres.
+
+## Composer une page à partir de parties
+
+Plutôt que de réécrire l'en-tête et le pied de page dans chaque fichier, on les **inclut**. Une page devient alors : inclusion de l'en-tête, contenu propre, inclusion du pied de page.
+
+```php
+<?php include __DIR__ . "/includes/header.php"; ?>
+
+<main>
+  <h2>Nos produits</h2>
+  <!-- contenu propre à la page -->
+</main>
+
+<?php include __DIR__ . "/includes/footer.php"; ?>
+```
+
+### Passer des informations à une partie incluse
+
+Un fichier inclus **partage les variables** de la page qui l'inclut. On peut donc préparer des valeurs **avant** l'inclusion et les utiliser dedans. C'est ce qui permet, par exemple, de marquer le lien de la page courante dans une barre de navigation partagée.
+
+<Steps>
+
+1. Chaque page définit son identité avant d'inclure l'en-tête :
+
+   ```php
+   <?php
+   $titre = "Nos produits";
+   $pageActive = "produits";
+   include __DIR__ . "/includes/header.php";
+   ?>
+   ```
+
+2. L'en-tête lit ces variables pour adapter le titre et le lien actif :
+
+   ```php
+   <title><?php echo htmlspecialchars($titre ?? "L'Érablière dorée"); ?></title>
+   <nav>
+     <a href="index.php" class="<?php echo ($pageActive ?? '') === 'accueil' ? 'actif' : ''; ?>">Accueil</a>
+     <a href="produits.php" class="<?php echo ($pageActive ?? '') === 'produits' ? 'actif' : ''; ?>">Produits</a>
+     <a href="contact.php" class="<?php echo ($pageActive ?? '') === 'contact' ? 'actif' : ''; ?>">Contact</a>
+   </nav>
+   ```
+
+</Steps>
+
+<MarginNote type="astuce">
+L'opérateur `??` évite un avertissement si une page oublie de définir `$pageActive` : la valeur par défaut prend le relais au lieu de planter.
+</MarginNote>
+
+### Réutiliser un morceau plus fin
+
+La composition ne s'arrête pas à l'en-tête et au pied de page. Un bloc qui revient, comme la carte d'un produit, peut devenir un **fragment** inclus dans une boucle.
+
+```php
+<?php foreach ($products as $p): ?>
+  <?php include __DIR__ . "/partials/product-card.php"; ?>
+<?php endforeach; ?>
+```
+
+Le fragment `partials/product-card.php` utilise la variable `$p` de la boucle, puisqu'il en partage la portée.
+
+<Aside type="attention" title="Échapper dans les fragments aussi">
+Un fragment réutilisé partout est un endroit où une donnée non échappée se répète partout. Gardez `htmlspecialchars(...)` sur tout ce qui s'affiche, surtout dans les morceaux réutilisés.
+</Aside>
+
+## Les mécanismes d'import
+
+{/* ### `include` et `require`
+
+| Mécanisme | Fichier manquant | Quand l'utiliser |
+| --- | --- | --- |
+| `include` | avertissement, le script continue | partie optionnelle |
+| `require` | erreur fatale, le script s'arrête | partie indispensable (en-tête, configuration) | */}
+
+### `include_once` et `require_once`
+
+Quand un fichier **déclare** quelque chose (une fonction, une classe), l'inclure deux fois provoque une erreur fatale : on ne peut pas redéclarer une fonction.
+
+```php
+<?php
+require_once __DIR__ . "/lib/functions.php";   // formatPrix() déclarée ici, une seule fois
+```
+
+<Highlight couleur="ambre">Utilisez la variante `_once` pour tout fichier qui déclare des fonctions ou des classes.</Highlight> Pour un simple fragment de présentation que vous voulez répéter (la carte produit dans une boucle), gardez `include` sans `_once`.
+
+### Importer des données
+
+Un fichier peut se contenter de **retourner** une valeur. On l'importe alors comme une expression.
+
+```php
+<?php
+// data/products.php
+return [
+  ["name" => "Sirop d'érable 540 ml", "price" => 14.50],
+  ["name" => "Beurre d'érable 250 g", "price" => 9.95],
+];
+```
+
+```php
+<?php
+$products = require __DIR__ . "/data/products.php";
+```
+
+C'est la séparation des **données** et de la **présentation** : les produits vivent à un endroit, la page qui les affiche à un autre.
+
+<Aside type="syntaxe" title="__DIR__, pour des chemins fiables">
+`__DIR__` est le dossier du fichier courant. `require __DIR__ . "/data/products.php"` fonctionne quel que soit l'endroit d'où la page est appelée, contrairement à un chemin relatif nu qui dépend du répertoire de travail.
+</Aside>
+
+{/* ### En regard de JavaScript
+
+<Aside type="exemple" title="include n'est pas import">
+En JavaScript, `import` charge un **module** qui a sa **propre portée** et expose des choses précises (`export`). En PHP, `include` et `require` **insèrent et exécutent** le fichier dans la portée courante : le fichier inclus voit les variables de l'appelant, et inversement. C'est plus souple, mais ça demande de la discipline, car rien n'est isolé.
+</Aside>
+
+<MarginNote type="rappel" titre="En JavaScript">
+Un module JS n'est exécuté qu'une fois, même importé plusieurs fois (il est mis en cache). En PHP, c'est le rôle de `require_once` : sans le `_once`, le fichier est ré-exécuté à chaque inclusion.
+</MarginNote> */}
+
+
+## Réflexes et pièges
+
+- **Chemin d'URL vs chemin de fichier** : `href` pour le navigateur, `include`/`require` pour le serveur. Ne les mélangez pas.
+- **`_once` pour les déclarations** : un fichier qui définit des fonctions ou des classes se charge avec `require_once`.
+- **Portée partagée** : un fichier inclus voit les variables de l'appelant. Préparez les valeurs avant l'inclusion, et nommez clairement.
+- **Échappement** : `htmlspecialchars(...)` sur tout ce qui s'affiche, y compris dans les fragments réutilisés.
+
+## Récapitulatif
+
+- Naviguer, c'est lier des fichiers `.php` par des `<a href>` ; chaque clic est une nouvelle requête.
+- Composer, c'est assembler une page à partir de parties incluses (en-tête, pied de page, fragments), auxquelles on passe des variables via la portée partagée.
+- Importer : `include`/`require` (optionnel vs indispensable), `_once` pour les déclarations, et `require` d'un fichier qui `return` pour importer des données.
+{/* - Plus propre encore : capturer le contenu (`ob_start`/`ob_get_clean`) et l'injecter dans un gabarit unique. */}
+
+{/* <Checkpoint question="Pourquoi charger un fichier de fonctions avec require_once plutôt que require ?">
+Parce qu'inclure deux fois un fichier qui déclare des fonctions provoque une erreur fatale (redéclaration). `require_once` garantit que le fichier n'est chargé qu'une seule fois, même s'il est demandé à plusieurs endroits.
+</Checkpoint> */}
+
+<Quiz
+  client:visible
+  question="Quelle différence majeure entre include en PHP et import en JavaScript ?"
+  options={[
+    { texte: "include isole le fichier dans sa propre portée", correct: false },
+    { texte: "include insère et exécute le fichier dans la portée courante, sans isolation", correct: true },
+    { texte: "Il n'y a aucune différence", correct: false },
+  ]}
+  retour="include partage la portée : le fichier inclus voit les variables de l'appelant. Un module JavaScript, lui, a sa propre portée et des exports explicites."
+/>
+
+<Quiz
+  client:visible
+  question="Dans un lien <a href='produits.php'>, ce chemin est..."
+  options={[
+    { texte: "un chemin de fichier sur le serveur", correct: false },
+    { texte: "un chemin d'URL interprété par le navigateur", correct: true },
+    { texte: "identique à un chemin d'include", correct: false },
+  ]}
+  retour="Un href est un chemin d'URL pour le navigateur. Les chemins d'include/require sont des chemins de fichier pour le serveur : ne pas confondre les deux."
+/>
+
+{/* ## Pour pratiquer */}
+
+{/* Mettez la composition en œuvre dans l'[exercice de synthèse](../exercice-synthese-site-simple/), qui demande un en-tête et un pied de page partagés et une liste générée. Revoyez au besoin le guide [Rendre une page dynamique](../page-dynamique-php/). */}

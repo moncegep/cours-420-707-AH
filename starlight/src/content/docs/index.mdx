@@ -1,0 +1,29 @@
+---
+title: Initiation au développement côté serveur
+description: Site présentant le matériel de support du cours 420-707-AH (Initiation au développement côté serveur).
+template: splash # Remove or comment out this line to display the site sidebar on this page.
+hero:
+  title: <b style='color:rgb(218,30,16)'>420-707-AH</b> <br> Initiation au développement côté serveur
+  tagline: "Programmation web avec PHP"
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: Notes de cours
+      link: /cours/01-introduction/
+      icon: right-arrow
+---
+
+import calendrier from '../../data/course-plan.json';
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+import CourseCalendar from '../../components/CourseCalendar.astro';
+import CourseFooter from './../../components/Footer.astro';
+// import LessonVideo from './../../components/LessonVideo.astro';
+// import LessonCard from './../../components/LessonCard.astro';
+
+
+## Calendrier de la session
+
+<CourseCalendar  weeks={calendrier.weeks} phases={calendrier.phases} />
+
+<CourseFooter author={'L-E Lafontant'} />

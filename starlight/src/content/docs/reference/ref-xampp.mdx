@@ -1,0 +1,136 @@
+---
+title: "Référence : XAMPP"
+description: Aide-mémoire pour installer et utiliser XAMPP (Apache, MySQL, PHP, phpMyAdmin) comme environnement de développement local.
+sidebar:
+  order: 6
+---
+
+import { Aside, Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components';
+
+XAMPP réunit en une seule installation les briques nécessaires pour exécuter du PHP localement. À utiliser pour le **développement**, jamais en production.
+
+## Ce que contient XAMPP  
+
+- **X** : multiplateforme (cross-platform) 
+- **A**pache : le serveur web qui reçoit les requêtes HTTP 
+- **M**ariaDB **M**ySQL : le système de base de données relationnelle 
+- **P**HP : l'interpréteur qui exécute vos scripts 
+- **P**hpMyAdmin : une interface web pour gérer la base de données 
+
+## Installation
+
+<Tabs>
+<TabItem label="Windows">
+
+1. Téléchargez XAMPP depuis le site officiel d'Apache Friends.
+2. Lancez l'installateur. Évitez d'installer dans `C:\Program Files` (droits d'écriture) ; le dossier `C:\xampp` par défaut convient.
+3. Au besoin, autorisez Apache dans le pare-feu Windows.
+
+</TabItem>
+<TabItem label="macOS">
+
+1. Téléchargez la version macOS depuis Apache Friends.
+2. Glissez XAMPP dans les Applications, puis lancez le gestionnaire.
+3. Démarrez les services depuis l'onglet **Manage Servers**.
+
+</TabItem>
+<TabItem label="Linux">
+
+1. Téléchargez le fichier `.run` depuis Apache Friends.
+2. Rendez-le exécutable, puis lancez-le avec les droits d'administration.
+3. Démarrez les services avec la commande `sudo /opt/lampp/lampp start`.
+
+</TabItem>
+</Tabs>
+
+## Le panneau de contrôle
+
+Le panneau permet de **démarrer** et **arrêter** chaque service. Pour ce cours, deux suffisent :
+
+- **Apache** : indispensable pour servir vos pages.
+- **MySQL** (MariaDB) : nécessaire dès qu'on utilise une base de données.
+
+Un service démarré apparaît en vert. S'il refuse de démarrer, c'est presque toujours un conflit de port (voir plus bas).
+
+## Le dossier `htdocs`
+
+`htdocs` est la **racine web** d'Apache : tout ce qui s'y trouve est accessible par le navigateur via `http://localhost/`.
+
+<Steps>
+
+1. Placez votre projet dans un sous-dossier, par exemple `htdocs/erabliere/`.
+
+2. Démarrez Apache.
+
+3. Ouvrez `http://localhost/erabliere/` dans le navigateur.
+
+</Steps>
+
+Arborescence type d'un projet :
+
+<FileTree>
+
+- htdocs/
+  - erabliere/
+    - index.php
+    - includes/
+      - header.php
+      - footer.php
+    - data/
+    - css/
+
+</FileTree>
+
+## Vérifier l'installation de PHP
+
+<Steps>
+
+1. Créez `htdocs/info.php` contenant un seul appel :
+
+   ```php
+   <?php
+   phpinfo();
+   ```
+
+2. Ouvrez `http://localhost/info.php`. La page affiche la version de PHP et sa configuration.
+
+3. **Supprimez ce fichier ensuite** : `phpinfo()` expose des détails de configuration qu'on ne laisse pas traîner.
+
+</Steps>
+
+## Ports par défaut
+
+- Apache (HTTP): 80 (parfois occupé par un autre logiciel)
+- Apache (HTTPS):  443
+- MySQL / MariaDB: 3306 
+
+<Aside type="caution" title="Le port 80 est souvent occupé">
+Sous Windows, le port 80 peut être pris par un autre service (par exemple IIS ou certaines applications de communication). Si Apache ne démarre pas, changez son port d'écoute (par exemple 8080) dans la configuration, puis accédez au site via `http://localhost:8080/`.
+</Aside>
+
+## phpMyAdmin
+
+phpMyAdmin est une interface web pour gérer MySQL : créer des bases de données, des tables, exécuter des requêtes SQL et consulter les données.
+
+<Steps>
+
+1. Démarrez **Apache** et **MySQL** dans le panneau.
+
+2. Ouvrez `http://localhost/phpmyadmin/`.
+
+</Steps>
+
+<Aside type="note" title="Identifiants par défaut">
+En local, l'utilisateur par défaut est `root` sans mot de passe. C'est acceptable sur votre machine, mais ce serait une faille majeure sur un vrai serveur.
+</Aside>
+
+## Problèmes fréquents
+
+- **Apache ne démarre pas** : conflit sur le port 80 ou 443. Fermez le logiciel qui l'occupe, ou changez le port d'Apache.
+- **MySQL ne démarre pas** : un autre service MySQL tourne déjà, ou le port 3306 est occupé.
+- **« Page non trouvée »** : vérifiez que le fichier est bien sous `htdocs` et que l'URL correspond au chemin réel (sensible à la casse selon le système).
+- **Le code PHP s'affiche au lieu de s'exécuter** : la page n'est pas servie par Apache. Ouvrez-la via `http://localhost/...`, pas en double-cliquant le fichier (`file://`).
+
+{/* <Aside type="danger" title="Développement seulement">
+XAMPP est conçu pour le développement local. Sa configuration par défaut (comme `root` sans mot de passe) n'est pas sécuritaire pour un serveur exposé sur Internet.
+</Aside> */}

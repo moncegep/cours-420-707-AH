@@ -1,0 +1,227 @@
+---
+title: Introduction au développement côté serveur avec PHP
+description: Client et serveur, histoire et écosystème de PHP, pages statiques et dynamiques, cycle d'une requête et environnement XAMPP.
+sidebar:
+  order: 1
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+import FluxSequence from '../../../components/react/FluxSequence.jsx';
+
+Dans ce premier chapitre, nous installons le modèle mental du développement côté serveur avant toute syntaxe : qui fait quoi entre le navigateur et le serveur, ce qu'apporte PHP, et comment une page se construit à chaque requête.
+
+## Client et serveur
+
+Quand vous accédez à une page web, le navigateur n'a pas le contenu d'avance. Il envoie une **demande** au serveur associé à l'adresse tapée dans la barre de navigation, par exemple `https://www.collegeahuntsic.qc.ca`. C'est pour cette raison qu'on l'appelle le <Highlight>client</Highlight> : il demande, il ne produit pas le contenu.
+
+<MarginNote type="rappel">
+Le navigateur n'est pas le seul client possible. Une application mobile, un autre serveur, un objet connecté (ex: voiture, réfrigérateur, borne) ou un simple script peuvent aussi jouer ce rôle : tout ce qui envoie une requête est un client.
+</MarginNote>
+
+Le serveur, lui, reçoit cette demande, **exécute le code** associé à l'adresse, et renvoie une **réponse**. 
+
+<FluxSequence
+  client:visible
+  titre="Le client demande, le serveur répond"
+  acteurs={[
+    { key: "client", label: "Client (navigateur)", icone: "laptop" },
+    { key: "serveur", label: "Serveur (Apache + PHP)", icone: "server" },
+  ]}
+  etapes={[
+    { de: 0, vers: 1, texte: "Requête HTTP", note: "GET /index.php" },
+    { de: 1, vers: 0, texte: "Réponse : HTML", statut: 200 },
+  ]}
+/>
+
+## Une petite histoire de PHP
+
+PHP est né en 1994-1995. Rasmus Lerdorf l'a d'abord écrit comme un ensemble de scripts pour suivre les visites de sa page personnelle en ligne ; le nom venait de « Personal Home Page ». Le besoin initial était concret : <Highlight couleur="ambre">rendre les pages web dynamiques et traiter les données de formulaires</Highlight> côté serveur, sans réécrire un programme complet pour chaque page.
+
+### L'écosystème
+
+PHP fait tourner une grande partie du web : selon W3Techs, environ **75 %** des sites dont on connaît le langage serveur l'utilisent, et WordPress (écrit en PHP) propulse à lui seul plus de **40 %** des sites. Autour du langage gravitent :
+
+- **Composer** : le gestionnaire de dépendances (l'équivalent de npm pour PHP).
+- **Des frameworks** : Laravel et Symfony pour les applications, en plus de plateformes prêtes à l'emploi comme WordPress, Drupal et Magento.
+
+{/* ### Laravel, la suite du parcours
+
+**Laravel** est le framework PHP le plus utilisé. Créé par Taylor Otwell en 2011 et bâti sur des composants de Symfony, il suit le patron <Highlight>modèle-vue-contrôleur (MVC)</Highlight>, exactement la structure que vous apprendrez à mettre en place à la main dans ce cours. Sa version majeure en 2026 est Laravel 13.
+
+Laravel formalise et outille ce découpage :
+
+- un **routeur** qui dirige chaque requête vers un contrôleur ;
+- **Blade**, un moteur de gabarits pour les vues ;
+- **Eloquent**, un ORM qui fait le pont avec la base de données ;
+- **Artisan**, un outil en ligne de commande (générer du code, lancer des migrations, etc.).
+
+<MarginNote type="lien">
+Quand vous arriverez à Laravel au cours suivant, vous reconnaîtrez le modèle, la vue et le contrôleur : vous les aurez déjà construits à la main ici.
+</MarginNote> */}
+
+{/* L'enjeu de ce cours est donc double : comprendre ce qui se passe côté serveur, et acquérir le découpage MVC qui rendra l'apprentissage de Laravel naturel. */}
+
+
+## Page statique vs page dynamique
+
+Une page dont **tout le contenu est déjà en HTML sur le serveur** est une page **statique** : le serveur la renvoie telle quelle, identique pour tout le monde.
+
+<MarginNote type="rappel">
+Du contenu dynamique peut tout de même être ajouté ensuite, côté client, avec du JavaScript. Mais le fichier servi par le serveur, lui, reste le même.
+</MarginNote>
+
+À l'inverse, une page **dynamique** <Highlight>crée son contenu au moment où le serveur reçoit la requête</Highlight>. 
+Le contenu peut alors varier et s'adapter automatiquement : une page de produits générée depuis une base de données, un tableau de bord qui change selon l'utilisateur connecté, ou simplement une page qui affiche la date du jour.
+
+{/* | Aspect | Page statique | Page dynamique |  
+| --- | --- | --- |  
+| Contenu | Fixe, écrit à l'avance | Généré à l'exécution |  
+| Exemple | Un fichier `.html` | Une page `.php` qui lit une base de données |  
+| Varie selon le contexte | Non | Oui (utilisateur, données, heure...) |  
+| Rôle du serveur | Renvoyer le fichier | Exécuter du code, puis renvoyer le résultat |   */}
+
+<Aside type="exemple" title="Le même besoin, deux approches">
+Pour afficher une liste de produits : en statique, on écrit chaque produit à la main dans le HTML et on modifie le fichier à chaque changement. En dynamique, on stocke les produits une fois (dans un tableau ou une base de données) et la page les affiche automatiquement, à jour à chaque visite.
+</Aside>
+
+{/* <Checkpoint question="Une page qui affiche « Bonjour » suivi du prénom de l'utilisateur connecté est-elle statique ou dynamique ?">
+Dynamique : son contenu dépend de qui consulte la page, donc il est produit à l'exécution, à la réception de la requête.
+</Checkpoint> */}
+
+## Le cycle d'une requête
+
+Quand une page PHP est demandée, la requête traverse trois acteurs avant que le navigateur n'affiche le résultat.
+
+<FluxSequence
+  client:visible
+  titre="Le cycle d'une requête, du navigateur à la réponse"
+  acteurs={[
+    { key: "nav", label: "Navigateur", icone: "laptop" },
+    { key: "apache", label: "Serveur (Apache)", icone: "server" },
+    { key: "php", label: "Interpréteur PHP", icone: "server" },
+  ]}
+  etapes={[
+    { de: 0, vers: 1, texte: "Requête HTTP", note: "GET /produits.php" },
+    { de: 1, vers: 2, texte: "Confie le script à PHP" },
+    { de: 2, vers: 2, texte: "Exécute le code, lit les données" },
+    { de: 2, vers: 1, texte: "HTML produit" },
+    { de: 1, vers: 0, texte: "Réponse", statut: 200 },
+    { de: 0, vers: 0, texte: "Affiche la page" },
+  ]}
+/>
+
+<Steps>
+
+1. Le **navigateur** envoie une requête HTTP (par exemple `GET /index.php`).
+
+2. Le **serveur** (Apache) repère le fichier et le confie à l'**interpréteur PHP**.
+
+3. L'interpréteur PHP **exécute** le code et produit du texte, généralement du HTML.
+
+4. Le serveur renvoie ce HTML ; le navigateur l'affiche. Le code source visible ne contient **aucune** instruction PHP.
+
+</Steps>
+
+
+
+## XAMPP, votre environnement de travail
+
+Pour exécuter du PHP sur votre machine, il faut trois choses : un **serveur web** qui reçoit les requêtes, l'**interpréteur PHP** qui exécute le code, et une **base de données** pour stocker les données. **XAMPP** réunit le tout en une seule installation :
+
+- **Apache** : le serveur web ;
+- **PHP** : l'interpréteur ;
+- **MariaDB / MySQL** : la base de données ;
+- **phpMyAdmin** : une interface web pour gérer la base de données.
+
+<Aside type="prerequis" title="Avant de coder">
+Installez XAMPP et démarrez **Apache** depuis son panneau de contrôle. Vos fichiers `.php` doivent être placés dans le dossier `htdocs`, la racine web d'Apache.
+</Aside>
+
+Le flux de travail est toujours le même :
+
+<Steps>
+
+1. Démarrez **Apache** dans le panneau de contrôle XAMPP.
+
+2. Placez votre fichier dans `htdocs` (par exemple `htdocs/essai.php`).
+
+3. Ouvrez `http://localhost/essai.php` dans le navigateur.
+
+</Steps>
+
+{/* <Aside type="erreur" title="Erreur fréquente">
+Si vous voyez le code PHP s'afficher au lieu de la page, c'est que le fichier n'a pas été servi par Apache. Ouvrez-le toujours via `http://localhost/...`, jamais en double-cliquant le fichier (`file://`).
+</Aside> */}
+
+{/* L'installation, les ports, phpMyAdmin et les problèmes fréquents sont détaillés dans la [référence XAMPP](../reference-xampp/). */}
+
+
+## Quiz
+
+
+<Quiz
+  client:visible
+  question="Où s'exécute le code PHP d'une page ?"
+  options={[
+    { texte: "Dans le navigateur du visiteur", correct: false },
+    { texte: "Sur le serveur", correct: true },
+    { texte: "Dans la base de données", correct: false },
+  ]}
+  retour="Exact. Le serveur exécute PHP et n'envoie que le HTML produit ; le navigateur ne voit jamais le code PHP."
+/>
+
+<Quiz
+  client:visible
+  question="À la fin du cycle, que reçoit le navigateur ?"
+  options={[
+    { texte: "Le code source PHP", correct: false },
+    { texte: "Le HTML produit par l'exécution du script", correct: true },
+    { texte: "Le fichier .php tel quel", correct: false },
+  ]}
+  retour="Exact. Le navigateur ne reçoit que le HTML produit ; le code PHP reste sur le serveur."
+/>
+
+
+<Quiz
+  client:visible
+  question="PHP a d'abord été créé pour répondre à quel besoin ?"
+  options={[
+    { texte: "Créer des jeux vidéo", correct: false },
+    { texte: "Rendre les pages web dynamiques et traiter des formulaires", correct: true },
+    { texte: "Mettre en forme des pages avec du style", correct: false },
+  ]}
+  retour="Exact. À l'origine, suivre des visites puis générer du contenu dynamique et traiter des formulaires côté serveur."
+/>
+
+<Quiz
+  client:visible
+  question="Qu'est-ce qui caractérise une page dynamique ?"
+  options={[
+    { texte: "Elle utilise des animations", correct: false },
+    { texte: "Son contenu est généré à la demande par du code côté serveur", correct: true },
+    { texte: "Elle se charge toujours plus vite", correct: false },
+  ]}
+  retour="Exact. Elle est construite à l'exécution, alors qu'une page statique renvoie toujours le même fichier."
+/>
+
+## Récapitulatif
+
+- Le **client** (navigateur ou autre) envoie une requête ; le **serveur** exécute du code et renvoie une réponse.
+- **PHP s'exécute côté serveur** et ne renvoie que le HTML produit, jamais son propre code.
+- Une page **statique** est servie telle quelle ; une page **dynamique** est construite à l'exécution et peut s'adapter.
+- Le **cycle d'une requête** : navigateur, puis Apache, puis interpréteur PHP, puis retour du HTML.
+- **XAMPP** fournit Apache, PHP et MySQL pour développer localement.
+{/* - Le découpage **MVC** que vous apprendrez ici prépare directement le passage à **Laravel**. */}
+
+## Références
+
+- [Documentation officielle de PHP](https://www.php.net/docs.php)
+- [MDN : aperçu du fonctionnement du web côté serveur](https://developer.mozilla.org/fr/docs/Learn/Server-side/First_steps/Introduction)
+- [MDN : méthodes et requêtes HTTP](https://developer.mozilla.org/fr/docs/Web/HTTP/Methods)
+- [Documentation de Laravel](https://laravel.com/docs)
+- [Apache Friends (XAMPP)](https://www.apachefriends.org/)

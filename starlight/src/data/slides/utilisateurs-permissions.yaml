@@ -1,0 +1,697 @@
+title: Utilisateurs et permissions
+
+# -----------------------------------------------------------
+# Visual definitions — reusable across cards
+# -----------------------------------------------------------
+
+visuals:
+  multi-user-server:
+    type: stack
+    items:
+      - type: row
+        items:
+          - { text: "App Node.js", color: green }
+          - { text: "Nginx", color: blue }
+          - { text: "PostgreSQL", color: purple }
+      - type: row
+        items:
+          - { text: "user: node", color: green }
+          - { text: "user: www-data", color: blue }
+          - { text: "user: postgres", color: purple }
+      - { text: "Noyau Linux — contrôle d'accès", color: amber }
+      - { text: "Matériel", color: surface }
+
+  identity-stack:
+    type: stack
+    items:
+      - { text: "alice (nom d'utilisateur)", color: blue }
+      - { text: "UID 1001", color: blue }
+      - { text: "GID 1001 (groupe principal)", color: amber }
+      - { text: "/home/alice (répertoire)", color: surface }
+      - { text: "/bin/bash (shell)", color: surface }
+
+  root-danger:
+    type: split
+    separator: "vs"
+    left:
+      type: box
+      text: "rm -rf /etc/ssh/"
+      subtext: "Utilisateur normal → refusé"
+      color: green
+      height: 70
+    right:
+      type: box
+      text: "rm -rf /etc/ssh/"
+      subtext: "root → SSH détruit"
+      color: amber
+      height: 70
+
+  sudo-flow:
+    type: stack
+    items:
+      - { text: "alice$ sudo apt install nginx", color: blue }
+      - { text: "Vérification : alice ∈ groupe sudo?", color: amber }
+      - { text: "Mot de passe d'alice demandé", color: amber }
+      - { text: "Exécution en tant que root", color: green }
+      - { text: "Retour aux privilèges normaux", color: surface }
+
+  group-concept:
+    type: stack
+    items:
+      - type: row
+        items:
+          - { text: alice, color: blue }
+          - { text: bob, color: blue }
+          - { text: carol, color: blue }
+      - { text: "Groupe: webdev", color: amber }
+      - { text: "/var/www/monsite — rw pour webdev", color: green }
+
+  group-without:
+    type: split
+    separator: "vs"
+    left:
+      type: box
+      text: "Sans groupe"
+      subtext: "Droits un par un — fragile"
+      color: amber
+      height: 60
+    right:
+      type: box
+      text: "Avec groupe"
+      subtext: "Ajouter au groupe — propre"
+      color: green
+      height: 60
+
+  multi-groups:
+    type: stack
+    items:
+      - { text: "id alice", color: surface }
+      - { text: "uid=1001(alice)", color: blue }
+      - { text: "gid=1001(alice) ← groupe principal", color: amber }
+      - { text: "groups=1001(alice),27(sudo),100(webdev)", color: green }
+      - { text: "          ↑ principal    ↑ supplémentaires", color: surface }
+
+  access-algorithm:
+    type: stack
+    items:
+      - { text: "Es-tu le propriétaire?", color: blue }
+      - { text: "→ oui: permissions u (propriétaire)", color: blue }
+      - { text: "Sinon, es-tu dans le groupe?", color: amber }
+      - { text: "→ oui: permissions g (groupe)", color: amber }
+      - { text: "Sinon: permissions o (autres)", color: green }
+      - { text: "La règle s'arrête au premier match", color: surface }
+
+  primary-vs-setgid:
+    type: split
+    separator: "vs"
+    left:
+      type: labeled-stack
+      label: "newgrp"
+      labelColor: blue
+      items:
+        - { text: "Outil du créateur", color: blue }
+        - { text: "Tu changes ton actif", color: blue }
+    right:
+      type: labeled-stack
+      label: "setgid"
+      labelColor: green
+      items:
+        - { text: "Outil du dossier", color: green }
+        - { text: "Force tous les créateurs", color: green }
+
+  passwd-shadow:
+    type: split
+    separator: false
+    left:
+      type: labeled-stack
+      label: "/etc/passwd"
+      labelColor: blue
+      items:
+        - { text: "Nom, UID, GID", color: blue }
+        - { text: "Home, Shell", color: blue }
+        - { text: "Lisible par tous (644)", color: surface }
+    right:
+      type: labeled-stack
+      label: "/etc/shadow"
+      labelColor: amber
+      items:
+        - { text: "Hash du mot de passe", color: amber }
+        - { text: "Expiration, politique", color: amber }
+        - { text: "root + groupe shadow (640)", color: surface }
+
+  switch-methods:
+    type: row
+    gap: 6
+    items:
+      - type: labeled-stack
+        label: "su -"
+        labelColor: blue
+        items:
+          - { text: "Mot de passe cible", color: blue }
+          - { text: "Env. complet", color: blue }
+      - type: labeled-stack
+        label: "sudo -u"
+        labelColor: green
+        items:
+          - { text: "Ton mot de passe", color: green }
+          - { text: "Env. actuel", color: green }
+      - type: labeled-stack
+        label: "sudo -i -u"
+        labelColor: amber
+        items:
+          - { text: "Ton mot de passe", color: amber }
+          - { text: "Env. complet", color: amber }
+
+  switch-common:
+    type: stack
+    items:
+      - { text: "Quelle que soit la méthode…", color: surface }
+      - { text: "UID cible identique", color: blue }
+      - { text: "Groupes cibles identiques", color: blue }
+      - { text: "Seuls env. + mdp diffèrent", color: amber }
+
+  rwx-breakdown:
+    type: row
+    gap: 6
+    items:
+      - type: labeled-stack
+        label: "Propriétaire (u)"
+        labelColor: blue
+        items:
+          - { text: "r w x", color: blue }
+      - type: labeled-stack
+        label: "Groupe (g)"
+        labelColor: green
+        items:
+          - { text: "r - x", color: green }
+      - type: labeled-stack
+        label: "Autres (o)"
+        labelColor: amber
+        items:
+          - { text: "r - -", color: amber }
+
+  rwx-meaning:
+    type: split
+    separator: false
+    left:
+      type: labeled-stack
+      label: Fichier
+      labelColor: blue
+      items:
+        - { text: "r = lire le contenu", color: blue }
+        - { text: "w = modifier", color: blue }
+        - { text: "x = exécuter", color: blue }
+    right:
+      type: labeled-stack
+      label: Répertoire
+      labelColor: green
+      items:
+        - { text: "r = lister (ls)", color: green }
+        - { text: "w = créer/supprimer", color: green }
+        - { text: "x = traverser (cd)", color: green }
+
+  octal-stack:
+    type: row
+    gap: 6
+    items:
+      - type: labeled-stack
+        label: "rwx = 7"
+        labelColor: blue
+        items:
+          - { text: "4 + 2 + 1", color: blue }
+      - type: labeled-stack
+        label: "r-x = 5"
+        labelColor: green
+        items:
+          - { text: "4 + 0 + 1", color: green }
+      - type: labeled-stack
+        label: "r-- = 4"
+        labelColor: amber
+        items:
+          - { text: "4 + 0 + 0", color: amber }
+
+  chmod-chown-chgrp:
+    type: stack
+    items:
+      - { text: "chmod — modifier les permissions", color: blue }
+      - { text: "chown — changer le propriétaire", color: green }
+      - { text: "chgrp — changer le groupe", color: amber }
+
+  inheritance-create:
+    type: stack
+    items:
+      - { text: "Nouveau fichier créé par alice", color: blue }
+      - { text: "Propriétaire = alice (toi)", color: green }
+      - { text: "Groupe = alice (principal) OU groupe parent si setgid", color: amber }
+      - { text: "Permissions = 666 − umask (ex: 664)", color: amber }
+
+  cp-vs-mv:
+    type: split
+    separator: "vs"
+    left:
+      type: labeled-stack
+      label: "cp"
+      labelColor: green
+      items:
+        - { text: "Crée un NOUVEAU fichier", color: green }
+        - { text: "Hérite du contexte cible", color: green }
+        - { text: "setgid s'applique", color: green }
+    right:
+      type: labeled-stack
+      label: "mv"
+      labelColor: amber
+      items:
+        - { text: "DÉPLACE le fichier", color: amber }
+        - { text: "Conserve ses attributs", color: amber }
+        - { text: "setgid NE s'applique PAS", color: amber }
+
+  chmod-not-inherited:
+    type: stack
+    items:
+      - { text: "chmod 700 /dossier/", color: blue }
+      - { text: "↓ n'affecte PAS", color: amber }
+      - { text: "/dossier/fichier.txt (inchangé)", color: green }
+      - { text: "Utilise -R pour récursif (avec prudence)", color: surface }
+
+  web-scenario:
+    type: stack
+    items:
+      - { text: "1. mkdir -p /var/www/monsite", color: blue }
+      - { text: "2. addgroup webdev", color: blue }
+      - { text: "3. usermod -aG webdev alice, bob", color: blue }
+      - { text: "4. chown -R alice:webdev /var/www/monsite", color: green }
+      - { text: "5. chmod 2775 /var/www/monsite", color: amber }
+      - { text: "6. Tester : alice crée un fichier", color: green }
+      - { text: "Résultat: alice webdev 664 — bob peut écrire", color: surface }
+
+# -----------------------------------------------------------
+# Sections
+# -----------------------------------------------------------
+
+sections:
+  - id: intro
+    tag: Introduction
+    title: L'utilisateur en Linux
+    nav: Intro
+    content: |
+      Linux est un système **multi-utilisateurs**. Chaque action est exécutée **au nom d'un utilisateur**, et le système vérifie si cet utilisateur a le droit de la faire.
+
+      Sur un serveur web, ton application Node.js, Nginx et la base de données tournent chacun sous un **utilisateur dédié** avec des droits restreints. C'est le **principe du moindre privilège**.
+    extended:
+      - |
+        Sur ton ordinateur personnel, tu es probablement le seul utilisateur. Tu ouvres, modifies et supprimes n'importe quel fichier. Sur un serveur, cette liberté totale serait dangereuse : une faille dans ton application donnerait à un attaquant les mêmes pouvoirs que toi.
+
+        Le modèle multi-utilisateurs résout ce problème. Chaque service tourne avec ses propres permissions, limitées au strict nécessaire. Si l'application Node.js est compromise, l'attaquant n'a accès qu'aux fichiers de l'application — pas à la base de données, pas aux logs, pas à la configuration système.
+    asides:
+      - type: note
+        text: "Plus de 80% des serveurs web tournent sous Linux. Le modèle de permissions que tu apprends ici est celui que tu utiliseras en production."
+    cards:
+      - type: visual
+        label: Serveur multi-utilisateurs
+        visual: multi-user-server
+      - type: concept
+        label: Principe du moindre privilège
+        text: "Chaque processus ne reçoit que les droits strictement nécessaires à son fonctionnement."
+
+  - id: identite
+    tag: Vocabulaire
+    title: Identité d'un utilisateur
+    nav: Identité
+    content: |
+      Quand tu te connectes, Linux associe ton nom d'utilisateur à un **UID** (*User ID*) — un numéro unique. C'est le UID que le système utilise pour tout contrôle d'accès; le nom n'est qu'un alias lisible.
+
+      Chaque utilisateur a un **répertoire personnel** (`/home/<nom_utilisateur>`) et un **shell** (`/bin/bash`).
+
+      `whoami` affiche ton nom. `id` affiche ton UID, ton GID et tes groupes.
+    extended:
+      - |
+        L'utilisateur `root` (UID 0) est le **superutilisateur**. Il peut tout faire : lire n'importe quel fichier, modifier la configuration système, créer et supprimer des utilisateurs. C'est un pouvoir nécessaire mais dangereux — une erreur en tant que `root` peut détruire le système.
+      - |
+        Linux crée aussi des **utilisateurs système** pour ses services : `www-data` (serveur web), `postgres` (base de données), `nobody` (processus sans privilège). Ces comptes n'ont pas de mot de passe et pas de shell interactif — personne ne se connecte avec eux. Ils existent pour isoler chaque service.
+    asides:
+      - type: term
+        title: UID
+        text: "Numéro unique identifiant un utilisateur. root = 0, utilisateurs normaux ≥ 1000."
+      - type: term
+        title: Utilisateur système
+        text: "Compte sans shell interactif, créé pour isoler un service (www-data, postgres)."
+    cards:
+      - type: visual
+        label: Anatomie d'un compte
+        visual: identity-stack
+      - type: example
+        label: Commandes
+        text: "whoami → alice. id → uid=1001(alice) gid=1001(alice) groups=1001(alice),27(sudo)."
+
+  - id: sudo
+    tag: Concept clé
+    title: sudo et le problème de root
+    nav: sudo
+    content: |
+      Pourquoi ne pas toujours travailler en tant que `root`? Parce qu'un pouvoir illimité rend chaque erreur catastrophique.
+
+      `sudo` (*superuser do*) te permet d'exécuter **une seule commande** avec les privilèges root, sans changer d'utilisateur. Le système te demande **ton propre** mot de passe pour confirmer.
+
+      Tu travailles au quotidien avec un compte ordinaire. Tu élèves tes privilèges **uniquement quand c'est nécessaire**.
+    extended:
+      - |
+        Seuls les utilisateurs du **groupe `sudo`** peuvent utiliser cette commande. Sous Ubuntu, l'utilisateur créé à l'installation y est ajouté automatiquement. Sur d'autres distributions, il faut configurer l'accès manuellement via `/etc/sudoers`.
+
+        Après avoir entré ton mot de passe, `sudo` le retient pendant quelques minutes. Tu n'as pas à le retaper pour chaque commande successive.
+      - |
+        En contexte web, la règle est claire : les opérations système (installer un paquet, redémarrer un service, modifier la configuration Nginx) nécessitent `sudo`. Le code de ton application, lui, ne devrait **jamais** tourner avec les privilèges root.
+    asides:
+      - type: caution
+        text: "Si ton application Node.js tourne en tant que root et qu'elle est compromise, l'attaquant a un accès total au serveur."
+      - type: term
+        title: /etc/sudoers
+        text: "Fichier de configuration qui définit quels utilisateurs peuvent utiliser sudo, et avec quelles restrictions."
+    cards:
+      - type: visual
+        label: Le danger de root
+        visual: root-danger
+      - type: visual
+        label: Flux sudo
+        visual: sudo-flow
+
+  - id: groupes
+    tag: Concept clé
+    title: Les groupes
+    nav: Groupes
+    content: |
+      Un **groupe** est un ensemble d'utilisateurs qui partagent les mêmes droits d'accès sur certaines ressources.
+
+      Plutôt que d'accorder des droits fichier par fichier, on les accorde au groupe — et on ajoute les utilisateurs au groupe.
+
+      Un quatrième développeur rejoint l'équipe? On l'ajoute au groupe — il hérite immédiatement des bons droits.
+    extended:
+      - |
+        Sur un serveur web, les groupes courants sont : `sudo` (peut exécuter des commandes root), `www-data` (processus du serveur web), `docker` (peut utiliser Docker sans sudo), `adm` (peut lire les logs système).
+      - |
+        L'intérêt est la gestion à l'échelle. Trois développeurs doivent modifier les fichiers d'un site? Plutôt que trois `chmod` individuels, tu crées un groupe `webdev`, tu accordes les droits au groupe, et tu y ajoutes les trois développeurs.
+    asides:
+      - type: tip
+        text: "groups <nom_utilisateur> — affiche ses groupes. getent group <nom_groupe> — affiche les membres du groupe."
+    cards:
+      - type: visual
+        label: Le concept
+        visual: group-concept
+      - type: visual
+        label: Sans vs avec groupe
+        visual: group-without
+
+  - id: multi-groupes
+    tag: Concept clé
+    title: Groupe principal et supplémentaires
+    nav: Multi-groupes
+    content: |
+      Chaque utilisateur a **exactement un groupe principal** (créé avec le compte, même nom par défaut).
+
+      Il peut appartenir à **plusieurs groupes supplémentaires**, ajoutés après.
+
+      Quand tu vérifies l'accès à un fichier, **tous** les groupes d'alice comptent — pas seulement le principal.
+    extended:
+      - |
+        **Le rôle du groupe principal** : il sert de groupe par défaut pour les nouveaux fichiers qu'alice crée. `touch fichier.txt` → le fichier a le groupe `alice`.
+
+        **Le rôle des groupes supplémentaires** : ils donnent accès aux fichiers qui appartiennent à ces groupes. Si le fichier `config.yml` appartient au groupe `webdev` et qu'alice est dans `webdev`, elle peut y accéder — même si ce n'est pas son groupe principal.
+      - |
+        L'algorithme de vérification est strict et s'arrête au premier match :
+
+        1. Es-tu le **propriétaire**? → applique `u`.
+        2. Sinon, es-tu dans le **groupe**? → applique `g`.
+        3. Sinon → applique `o`.
+
+        Piège : un fichier `604 root:staff` donne **rien** au groupe staff et **lecture** aux autres. Si tu es dans staff, tu ne peux pas lire — le système s'arrête à l'étape 2 avec les permissions du groupe.
+    asides:
+      - type: term
+        title: Groupe actif (principal)
+        text: "Groupe assigné aux nouveaux fichiers que tu crées. Modifiable temporairement avec newgrp."
+      - type: tip
+        text: "newgrp est un outil du créateur. setgid est un outil du dossier. setgid est plus robuste pour les espaces partagés."
+    cards:
+      - type: visual
+        label: Exemple de id
+        visual: multi-groups
+      - type: visual
+        label: Algorithme de vérification
+        visual: access-algorithm
+
+  - id: comptes
+    tag: Administration
+    title: Comptes et mots de passe
+    nav: Comptes
+    content: |
+      Les informations de chaque compte sont dans `/etc/passwd` : nom, UID, GID, répertoire, shell. Lisible par tous.
+
+      Les mots de passe (sous forme de **hash**) sont dans `/etc/shadow`, permissions `640 root:shadow` — protégé des utilisateurs ordinaires.
+
+      Cette séparation est une mesure de sécurité : les programmes doivent lire les noms, mais pas les mots de passe.
+    extended:
+      - |
+        Une ligne typique de `/etc/passwd` :
+
+        `alice:x:1001:1001:Alice Tremblay:/home/alice:/bin/bash`
+
+        Le `x` dans le champ mot de passe indique que le hash réel est dans `/etc/shadow`.
+      - |
+        Seuls `root` et quelques services système du groupe `shadow` (comme `login` ou `sshd`) peuvent lire `/etc/shadow`. Cette séparation existe depuis les années 1990 — avant, les hashs étaient directement dans `/etc/passwd`, exposés à toute personne pouvant lire le fichier.
+    asides:
+      - type: note
+        text: "Le mot de passe n'est jamais stocké en clair. Le système stocke un hash — une empreinte irréversible."
+    cards:
+      - type: visual
+        label: Deux fichiers
+        visual: passwd-shadow
+      - type: example
+        label: /etc/passwd
+        text: "alice:x:1001:1001:Alice:/home/alice:/bin/bash"
+
+  - id: gestion
+    tag: Commandes
+    title: Créer utilisateurs et groupes
+    nav: Gestion
+    content: |
+      **Créer un utilisateur** — `sudo adduser <nom_utilisateur>`. Interactif : crée le répertoire, demande un mot de passe.
+
+      **Créer un groupe** — `sudo addgroup <nom_groupe>`.
+
+      **Ajouter au groupe** — `sudo usermod -aG <nom_groupe> <nom_utilisateur>`. Le `-a` est critique.
+    extended:
+      - |
+        `adduser` vs `useradd` : `adduser` est un script interactif (Debian/Ubuntu) qui guide la création complète. `useradd` est la commande bas niveau — elle ne crée ni le répertoire personnel ni le mot de passe par défaut. En pratique, `adduser` pour les comptes humains, `useradd` pour l'automatisation.
+      - |
+        **Le drapeau `-a`** dans `usermod -aG` signifie *append*. Sans lui, `usermod -G` **remplace** tous les groupes secondaires. Oublier `-a` peut retirer un utilisateur du groupe `sudo` et te bloquer hors du système.
+
+        L'ajout à un groupe ne s'applique pas à la session en cours — il faut se reconnecter ou utiliser `newgrp`.
+    asides:
+      - type: caution
+        text: "usermod -G (sans -a) REMPLACE les groupes. usermod -aG AJOUTE. Oublier -a peut te bloquer hors du système."
+      - type: tip
+        text: "Après usermod -aG, la session en cours ne voit pas le nouveau groupe. Se reconnecter ou newgrp pour l'activer."
+    cards:
+      - type: example
+        label: Cycle complet
+        text: "adduser → addgroup → usermod -aG → groups (vérifier)."
+      - type: concept
+        label: Mot clé
+        text: "Le -a de usermod -aG : append. Toujours l'inclure."
+
+  - id: changer-utilisateur
+    tag: Commandes
+    title: Changer d'utilisateur
+    nav: Changer d'user
+    content: |
+      Plusieurs commandes pour « devenir » un autre utilisateur, mais elles ne sont pas équivalentes.
+
+      `su - <user>` — connexion fraîche, **mot de passe de la cible** demandé.
+
+      `sudo -u <user> <cmd>` — une commande, **ton** mot de passe sudo.
+
+      `sudo -i -u <user>` — connexion fraîche, **ton** mot de passe sudo.
+    extended:
+      - |
+        **`su -`** charge l'environnement complet de la cible (HOME, PATH, PWD, .bashrc). Le tiret est essentiel — sans lui, tu gardes ton environnement. Mais il te faut connaître le mot de passe de la cible.
+
+        **`sudo -u`** exécute une commande ponctuelle en tant que la cible, en gardant **ton** environnement actuel. Pratique pour les scripts.
+
+        **`sudo -i -u`** — le meilleur des deux : session complète sans avoir à connaître le mot de passe.
+      - |
+        **Point critique** : peu importe la méthode utilisée, les **groupes** actifs sont les mêmes — ce sont ceux de l'utilisateur cible, pas les tiens. La différence se situe uniquement dans l'environnement shell et dans quel mot de passe est demandé.
+
+        `ssh <user>@<serveur>` est la quatrième option — une vraie connexion réseau via PAM, avec tout ce que cela implique (clés SSH, modules de sécurité).
+    asides:
+      - type: tip
+        text: "sudo -i -u = le plus pratique en pratique. Login complet sans connaître le mot de passe de la cible."
+      - type: note
+        text: "Identiques dans toutes les méthodes : UID, GID, groupes. Différents : environnement shell, mot de passe demandé."
+    cards:
+      - type: visual
+        label: Trois méthodes
+        visual: switch-methods
+      - type: visual
+        label: Ce qui reste identique
+        visual: switch-common
+
+  - id: rwx
+    tag: Concept clé
+    title: Permissions rwx
+    nav: rwx
+    content: |
+      Chaque fichier a trois niveaux d'accès : **propriétaire** (u), **groupe** (g), **autres** (o).
+
+      Pour chaque niveau, trois permissions : **r** (lire), **w** (écrire), **x** (exécuter ou traverser).
+
+      `ls -l <fichier>` → `-rwxr-xr-- 1 alice webdev` — propriétaire peut tout, le groupe peut lire/exécuter, les autres peuvent seulement lire.
+    extended:
+      - |
+        Sur un **fichier** : `r` = lire le contenu, `w` = modifier, `x` = exécuter comme programme.
+
+        Sur un **répertoire** : `r` = lister le contenu (`ls`), `w` = créer ou supprimer des fichiers à l'intérieur, `x` = traverser (`cd`) et accéder aux sous-éléments.
+
+        Un répertoire sans `x` est inaccessible même avec `r` — tu vois les noms des fichiers mais tu ne peux ni les ouvrir ni entrer dans le répertoire.
+    asides:
+      - type: caution
+        text: "Répertoire sans x = porte vitrée verrouillée. Tu vois le contenu mais tu ne peux pas y accéder."
+    cards:
+      - type: visual
+        label: Trois niveaux × trois droits
+        visual: rwx-breakdown
+      - type: visual
+        label: Fichier vs répertoire
+        visual: rwx-meaning
+
+  - id: octal
+    tag: Notation
+    title: Notation octale
+    nav: Octale
+    content: |
+      Chaque permission a une valeur : **r = 4**, **w = 2**, **x = 1**. On additionne par niveau.
+
+      `rwx` = 4+2+1 = **7**. `r-x` = 4+0+1 = **5**. `r--` = 4+0+0 = **4**.
+
+      Ainsi `rwxr-xr--` s'écrit **754**. Trois chiffres : propriétaire, groupe, autres.
+    extended:
+      - |
+        Les valeurs courantes à connaître :
+
+        **755** — standard pour les répertoires et scripts. Le propriétaire peut tout, les autres lisent et traversent.
+
+        **644** — standard pour les fichiers de contenu. Le propriétaire lit et écrit, les autres lisent seulement.
+
+        **600** — fichier privé. Seul le propriétaire peut lire et écrire. Indispensable pour les clés SSH.
+
+        **700** — répertoire ou script privé. Seul le propriétaire a accès.
+    asides:
+      - type: tip
+        text: "755 pour les répertoires, 644 pour les fichiers, 600 pour les clés SSH. Ces trois valeurs couvrent 90% des besoins."
+    cards:
+      - type: visual
+        label: Calcul
+        visual: octal-stack
+      - type: example
+        label: Valeurs courantes
+        text: "755 (répertoires), 644 (fichiers), 600 (clés privées), 700 (scripts privés)."
+
+  - id: commandes
+    tag: Commandes
+    title: chmod, chown, chgrp
+    nav: Commandes
+    content: |
+      **chmod** (*change mode*) — modifier les permissions. Deux syntaxes : symbolique (`chmod u+x script.sh`) ou octale (`chmod 755 script.sh`).
+
+      **chown** (*change owner*) — changer le propriétaire et/ou le groupe. Requiert `sudo`.
+
+      **chgrp** (*change group*) — changer le groupe uniquement. Raccourci pour `chown :<groupe>`.
+    extended:
+      - |
+        **Symbolique** — `chmod u+x` (ajouter exécution au propriétaire), `chmod g+rw` (ajouter lecture+écriture au groupe), `chmod o-rwx` (tout retirer aux autres), `chmod a+r` (lecture pour tous).
+
+        **Octale** — `chmod 755 <fichier>`, `chmod 644 <fichier>`, `chmod 600 <clé>`.
+      - |
+        **chown** — `sudo chown <user> <fichier>` (propriétaire), `sudo chown <user>:<group> <fichier>` (propriétaire + groupe), `sudo chown -R <user>:<group> <dossier>` (récursif).
+
+        Seul `root` peut changer le propriétaire. Si n'importe qui pouvait s'attribuer la propriété de n'importe quel fichier, tout le modèle de permissions s'effondrerait.
+    asides:
+      - type: note
+        text: "chmod -R applique le mode à tout. Sur un mix fichiers/répertoires, 755 donne x aux fichiers — rarement voulu."
+    cards:
+      - type: visual
+        label: Trois commandes
+        visual: chmod-chown-chgrp
+      - type: example
+        label: Mémo
+        text: "chmod = qui peut quoi. chown = à qui. chgrp = pour quel groupe."
+
+  - id: heritage
+    tag: Concept clé
+    title: Héritage des permissions
+    nav: Héritage
+    content: |
+      D'où viennent les permissions d'un nouveau fichier? Les règles varient selon l'opération — source classique de bogues.
+
+      **À la création** : propriétaire = toi, groupe = ton principal (ou parent si setgid), permissions = 666 − umask.
+
+      **cp vs mv** : `cp` crée un nouveau fichier (hérite), `mv` conserve les attributs originaux.
+
+      **chmod sur le parent** : n'affecte PAS les fichiers existants.
+    extended:
+      - |
+        **Sur Ubuntu, umask = 0002** par défaut → nouveaux fichiers en 664 (`rw-rw-r--`), nouveaux répertoires en 775. Si le parent a `setgid`, le groupe est celui du parent, pas le groupe principal de l'utilisateur.
+
+        **Les permissions du parent ne sont PAS héritées**. Un fichier dans un dossier 700 peut très bien avoir 664 — seule l'accessibilité change qui peut l'atteindre.
+      - |
+        **Le piège collaboratif de mv** : alice copie un fichier dans l'espace partagé → setgid s'applique, tout va bien. Alice **déplace** un fichier dans l'espace partagé → le fichier garde son groupe d'origine (`alice`), et bob ne peut pas le modifier.
+
+        **Le piège de chmod** : modifier les permissions d'un dossier ne change rien aux fichiers existants. Pour du récursif, il faut `-R` — avec prudence sur les mix fichiers/répertoires.
+    asides:
+      - type: caution
+        text: "mv ne réapplique pas setgid. Après un mv dans un espace partagé, vérifie le groupe avec ls -l et corrige avec chgrp si nécessaire."
+      - type: note
+        text: "umask détermine les permissions par défaut. Ubuntu l'a à 0002 (fichiers 664, dossiers 775). Sur certains serveurs, c'est 0022 (fichiers 644)."
+    cards:
+      - type: visual
+        label: À la création
+        visual: inheritance-create
+      - type: visual
+        label: cp vs mv
+        visual: cp-vs-mv
+      - type: visual
+        label: Le parent n'impose rien
+        visual: chmod-not-inherited
+
+  - id: scenario
+    tag: Synthèse
+    title: "Cas pratique : configurer un site web"
+    nav: Cas pratique
+    content: |
+      Scénario complet : configurer `/var/www/monsite` pour que `alice` et `bob` puissent modifier les fichiers, et que Nginx puisse les servir.
+
+      Six étapes : **mkdir** → **addgroup** → **usermod** → **chown** → **chmod** → **tester**.
+    extended:
+      - |
+        1. `sudo mkdir -p /var/www/monsite` — créer le dossier.
+        2. `sudo addgroup webdev` — créer le groupe.
+        3. `sudo usermod -aG webdev alice` et `bob` — ajouter les développeurs.
+        4. `sudo chown -R alice:webdev /var/www/monsite` — propriétaire et groupe.
+        5. `sudo chmod 2775 /var/www/monsite` — permissions + setgid sur le dossier.
+        6. Tester : `sudo -u alice bash -c 'echo "<h1>Mon site</h1>" > /var/www/monsite/index.html'`
+      - |
+        **Deux mécanismes font le travail** pour les fichiers créés ensuite :
+
+        - **setgid** (le `2` de `2775`) → le groupe est automatiquement `webdev`, pas le groupe principal du créateur.
+        - **umask 0002** (défaut Ubuntu) → les fichiers ont `664`, donc écriture pour le groupe activée.
+
+        Résultat : alice crée un fichier, bob peut le modifier, www-data peut le lire. Pas besoin de `chmod` individuel sur chaque fichier.
+    asides:
+      - type: tip
+        text: "Pourquoi pas www-data dans le groupe webdev? Ça lui donnerait l'écriture (groupe = rw). Un serveur web ne devrait pas pouvoir modifier ses propres fichiers — principe de sécurité."
+      - type: note
+        text: "Ce scénario suppose un dossier vide. Pour des fichiers existants, chmod sur le parent ne suffit pas — il faut les traiter individuellement."
+    cards:
+      - type: visual
+        label: Pipeline en 6 étapes
+        visual: web-scenario
+      - type: concept
+        label: Clé du succès
+        text: "setgid (groupe) + umask (permissions) — les deux se combinent pour que tout fonctionne automatiquement."

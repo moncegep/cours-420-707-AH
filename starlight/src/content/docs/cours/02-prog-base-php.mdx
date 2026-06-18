@@ -1,0 +1,235 @@
+---
+title: Prise en main des bases de PHP
+description: Variables, types, opérateurs, conditions et boucles en PHP, avec comparaison continue à JavaScript et des exemples à tester.
+sidebar:
+  order: 2
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+
+Cette page couvre les bases de la programmation en PHP. Comme vous connaissez déjà JavaScript, chaque notion est mise en regard de son équivalent JS : ce qui se ressemble, et ce qui diffère.
+
+<Aside type="prerequis" title="Pour tester les exemples">
+Créez un fichier dans `htdocs`, par exemple `htdocs/test.php`, collez-y le code entre les balises `<?php ?>`, démarrez Apache, puis ouvrez `http://localhost/test.php`.
+</Aside>
+
+## Afficher du texte
+
+`echo` envoie du texte dans la réponse HTTP (donc dans la page).
+
+```php
+<?php
+echo "Bonjour le serveur";
+```
+
+<MarginNote type="rappel" titre="En JavaScript">
+`console.log("...")` écrit dans la **console du navigateur**. `echo` écrit dans la **page** elle-même : ce n'est pas la même destination.
+</MarginNote>
+
+La grande différence avec le `console.log` que vous connaissez : `echo` produit le contenu que le visiteur verra, pas un message de débogage.
+
+## Les variables
+
+Une variable PHP commence **toujours** par `$`, à la déclaration comme à l'usage.
+
+```php
+<?php
+$name = "Ti-Jean";
+$age = 42;
+echo $name;
+```
+
+**En JavaScript :**
+
+```js
+let name = "Ti-Jean";
+let age = 42;
+console.log(name);
+```
+
+<Highlight>Les deux langages ont un typage dynamique</Highlight> : le type est déduit de la valeur et peut changer. La différence visible est le `$` obligatoire en PHP, et l'absence de mot-clé comme `let` ou `const`.
+
+<Aside type="erreur" title="Erreur fréquente">
+Oublier le `$` devant une variable. En PHP, `name = "Ti-Jean"` est une erreur ; il faut `$name = "Ti-Jean"`.
+</Aside>
+
+## Les types de base
+
+{/* | Type PHP | Exemple | En JavaScript |
+| --- | --- | --- |
+| `string` | `"Bonjour"` | `string` |
+| `int` | `42` | `number` |
+| `float` | `9.95` | `number` |
+| `bool` | `true` / `false` | `boolean` |
+| `null` | `null` | `null` |
+| `array` | `[1, 2, 3]` | `Array` / `Object` | */}
+
+<MarginNote type="astuce" titre="Inspecter une valeur">
+Pour inspecter une valeur pendant le développement :
+
+```php
+<?php
+$price = 9.95;
+var_dump($price);   // float(9.95)
+```
+C'est le `console.log` de débogage de PHP : `var_dump` affiche le type **et** la valeur.
+</MarginNote>
+
+
+## Chaînes : concaténation et interpolation
+
+```php
+<?php
+$name = "Ti-Jean";
+echo "Bonjour " . $name;   // concaténation avec un point
+echo "Bonjour {$name}";    // interpolation (guillemets doubles)
+```
+
+**En JavaScript :**
+
+```js
+let name = "Ti-Jean";
+console.log("Bonjour " + name);   // concaténation avec un plus
+console.log(`Bonjour ${name}`);   // gabarit (backticks)
+```
+
+<Aside type="syntaxe" title="À retenir">
+Concaténation : PHP utilise `.`, JavaScript utilise `+`. Interpolation : PHP utilise `"{$x}"` (guillemets doubles), JavaScript utilise `` `${x}` `` (backticks). Les guillemets **simples** de PHP n'interpolent pas : `'Bonjour $name'` affiche littéralement `Bonjour $name`.
+</Aside>
+
+## Les opérateurs
+
+Arithmétique : `+ - * / %` et `**` (puissance), comme en JavaScript.
+
+Comparaison :
+
+```php
+<?php
+var_dump(5 == "5");    // true  : compare la valeur
+var_dump(5 === "5");   // false : compare la valeur ET le type
+```
+
+<Highlight couleur="bleu">`==` et `===` existent dans les deux langages et veulent dire la même chose</Highlight> : `==` compare après conversion de type, `===` compare valeur et type. La recommandation est la même qu'en JavaScript : préférez `===`.
+
+Logique et coalescence :
+
+```php
+<?php
+$actif = true && false;          // et, ou (||), non (!)
+$nom = $entree ?? "anonyme";     // valeur par défaut si $entree est null
+```
+
+<MarginNote type="rappel" titre="En JavaScript">
+`&&`, `||`, `!` et l'opérateur `??` sont identiques à ceux de JavaScript. Vous êtes déjà en terrain connu.
+</MarginNote>
+
+## Les conditions
+
+```php
+<?php
+if ($age >= 18) {
+  echo "Majeur";
+} elseif ($age >= 0) {
+  echo "Mineur";
+} else {
+  echo "Âge invalide";
+}
+```
+
+**En JavaScript :**
+
+```js
+if (age >= 18) {
+  console.log("Majeur");
+} else if (age >= 0) {   // deux mots
+  console.log("Mineur");
+} else {
+  console.log("Âge invalide");
+}
+```
+
+<Aside type="syntaxe" title="Le piège du elseif">
+PHP écrit `elseif` en **un seul mot** ; JavaScript écrit `else if` en **deux mots**. Le reste (parenthèses, accolades) est identique.
+</Aside>
+
+L'opérateur ternaire et le `switch` fonctionnent comme en JavaScript :
+
+```php
+<?php
+$statut = $age >= 18 ? "majeur" : "mineur";
+
+switch ($jour) {
+  case "samedi":
+  case "dimanche":
+    echo "Fin de semaine";
+    break;
+  default:
+    echo "Jour de semaine";
+}
+```
+
+<Checkpoint question="En PHP, quelle est la différence entre == et === ?">
+`==` compare seulement les valeurs, avec conversion de type (`5 == "5"` est vrai). `===` compare la valeur **et** le type (`5 === "5"` est faux). On préfère `===`, comme en JavaScript.
+</Checkpoint>
+
+## Les boucles
+
+```php
+<?php
+// for
+for ($i = 1; $i <= 3; $i++) {
+  echo "Ligne {$i}";
+}
+
+// while
+$i = 1;
+while ($i <= 3) {
+  echo "Ligne {$i}";
+  $i++;
+}
+```
+
+La syntaxe `for` et `while` est **identique** à celle de JavaScript (au `$` près sur les variables). La boucle `foreach`, propre au parcours des tableaux, est vue dans les [notions avancées](/cours/03-prog-avancee-php).
+
+## Commentaires
+
+```php
+<?php
+// commentaire sur une ligne
+# autre façon de commenter une ligne
+/* commentaire
+   sur plusieurs lignes */
+```
+
+`//` et `/* */` sont communs avec JavaScript ; PHP ajoute `#`.
+
+<Quiz
+  client:visible
+  question="Quelle est la bonne façon d'afficher la valeur de $name dans la page ?"
+  options={[
+    { texte: "console.log($name);", correct: false },
+    { texte: "echo $name;", correct: true },
+    { texte: "print(name);", correct: false },
+  ]}
+  retour="echo écrit dans la réponse HTTP. console.log appartient à JavaScript et écrit dans la console du navigateur, pas dans la page."
+/>
+
+<Quiz
+  client:visible
+  question="Comment concatène-t-on deux chaînes en PHP ?"
+  options={[
+    { texte: "Avec +, comme en JavaScript", correct: false },
+    { texte: "Avec le point .", correct: true },
+    { texte: "Avec une virgule", correct: false },
+  ]}
+  retour="En PHP la concaténation se fait avec le point (.). Le + sert uniquement à l'addition de nombres."
+/>
+
+{/* ## Pour aller plus loin
+
+Passez aux [notions avancées](../notions-avancees-php/) (tableaux et fonctions), gardez la [référence des bases](../reference-bases-php/) à portée, et entraînez-vous avec les [exercices](../exercices-php/). */}

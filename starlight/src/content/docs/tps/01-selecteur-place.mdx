@@ -1,0 +1,267 @@
+---
+title: Travail pratique — Plateforme de sélection de places
+description: Concevoir en PHP une plateforme qui configure une salle, génère des places par section avec tarifs, permet de réserver via un formulaire dynamique validé, et tient à jour les disponibilités.
+sidebar:
+  order: 7
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+
+Ce travail réunit tout ce que vous avez appris depuis le début du cours : **tableaux et fonctions** pour modéliser une salle, **navigation et composition** pour assembler les pages, et **formulaires, validation et échappement** pour réserver une place en toute sécurité. Vous construisez une petite **plateforme de billetterie** qui émule la sélection de places pour une représentation.
+
+<Aside type="prerequis" title="Avant de commencer">
+Ce TP suppose les chapitres précédents maîtrisés. Gardez-les à portée :
+les [bases](/cours/02-prog-base-php) et les [notions avancées](/cours/03-prog-avancee-php) (tableaux, `foreach`, fonctions), la [navigation et composition](/cours/04-navigation) (`include`, gabarit partagé) et les [formulaires et la validation](/cours/05-formulaires-validation) (`$_POST`, validation serveur, `htmlspecialchars`).
+</Aside>
+
+## Le mandat
+
+Le **Théâtre de l'Érablière** veut un outil web pour visualiser sa salle et réserver des places pour une représentation. Vous devez livrer une plateforme PHP où l'on peut :
+
+- **configurer une salle** : un nombre de sections, chacune avec ses rangées et ses places ;
+- **fixer un prix par section** ;
+- **voir le plan de salle**, avec les places libres et les places déjà prises ;
+- **réserver une place** en la sélectionnant, puis en remplissant un formulaire qui s'adapte à la place choisie ;
+- voir les **disponibilités se mettre à jour** après chaque réservation valide ;
+- **remplir aléatoirement** une partie de la salle, pour simuler d'autres spectateurs ;
+- consulter une page **À propos** qui présente la plateforme.
+
+<MarginNote type="rappel" titre="« Émuler »">
+La plateforme **simule** une billetterie : les réservations vivent le temps de la session de travail. La persistance durable (base de données) est un sujet à venir ; ici, l'état tient dans la **session PHP**.
+</MarginNote>
+
+## Objectifs d'apprentissage
+
+En réalisant ce TP, vous démontrez votre capacité à :
+
+- modéliser un domaine avec des **tableaux associatifs** et générer des données par **fonctions** ;
+- composer un site de plusieurs pages à l'aide d'un **gabarit commun** (`include`) ;
+- traiter un **formulaire** avec `$_GET`/`$_POST`, **valider côté serveur** et **échapper** tout affichage ;
+- maintenir un **état** qui évolue d'une requête à l'autre.
+
+## Fonctionnalités à réaliser
+
+### 1. Configuration de la salle et génération des places
+
+La salle est décrite par une **configuration** : pour chaque section, un nom, un nombre de rangées et un nombre de places par rangée. À partir de cette configuration, une fonction **génère l'ensemble des places**.
+
+```php
+<?php
+// Exemple de configuration (à adapter, ex. dans data/salle.php)
+$config = [
+  "Parterre"  => ["rangees" => 5, "placesParRangee" => 12, "prix" => 75.00],
+  "Mezzanine" => ["rangees" => 3, "placesParRangee" => 10, "prix" => 50.00],
+];
+```
+
+Chaque place générée porte au minimum un **identifiant** (par exemple `Parterre-A-12`), sa **section** et un **état** (`libre` ou `reserve`).
+
+```php
+<?php
+$place = [
+  "id"      => "Parterre-A-12",
+  "section" => "Parterre",
+  "etat"    => "libre",   // "libre" ou "reserve"
+  "nom"     => null,       // nom du détenteur, une fois réservée
+];
+```
+
+<Highlight>Écrivez une fonction `genererPlaces($config)` qui retourne le tableau de toutes les places.</Highlight> C'est le cœur du modèle : tout le reste s'appuie dessus.
+
+### 2. Tarification par section
+
+Le **prix dépend de la section**, pas de la place individuelle. Une place du Parterre coûte le prix du Parterre. Prévoyez de **récupérer le prix d'une place** à partir de sa section (par exemple une fonction `prixDeLaPlace($place, $config)`).
+
+<MarginNote type="astuce">
+Si vous offrez un écran de configuration des prix, c'est un **formulaire** de plus : un prix par section, validé côté serveur (nombre positif). Sinon, des prix par défaut dans `data/salle.php` suffisent pour la note de base.
+</MarginNote>
+
+### 3. Plan de salle et sélection d'une place
+
+La page principale affiche le **plan de salle** : les places, regroupées par section et par rangée, avec une distinction visuelle claire entre **libre** et **réservée**.
+
+<Steps>
+
+1. Parcourez les places (`foreach`) pour dessiner la grille, section par section.
+
+2. Une place **libre** est **cliquable** : un lien mène au formulaire de réservation en transportant l'identifiant de la place.
+
+   ```html
+   <a href="reserver.php?place=Parterre-A-12">A-12</a>
+   ```
+
+3. Une place **réservée** n'est pas cliquable (affichez-la grisée, désactivée).
+
+</Steps>
+
+### 4. Formulaire de réservation dynamique
+
+En arrivant sur le formulaire avec `?place=...`, la page lit l'identifiant dans `$_GET`, retrouve la place dans l'état, et **adapte son contenu** : elle affiche la section, le numéro de place et le **prix correspondant**. Le formulaire demande au moins le **nom** et le **courriel** de la personne.
+
+<Aside type="attention" title="Vérifier la place avant d'afficher le formulaire">
+Avant tout, validez que l'identifiant reçu **existe** et que la place est bien **libre**. Une place inexistante ou déjà prise ne doit pas mener à un formulaire de réservation. C'est la même prudence que pour toute donnée venant du client : on ne fait jamais confiance à `$_GET` les yeux fermés.
+</Aside>
+
+### 5. Validation, réservation et mise à jour des disponibilités
+
+À la **soumission** (`POST`), vous **validez côté serveur** : champs obligatoires non vides, courriel valide (`filter_var`), place toujours libre. 
+
+<Steps>
+
+1. **Si des erreurs existent**, réaffichez le formulaire avec les messages, en **conservant** la saisie (échappée avec `htmlspecialchars`).
+
+2. **Si tout est valide**, marquez la place comme `reserve`, enregistrez le nom, **mettez à jour l'état**, puis affichez une **confirmation**. Le plan de salle doit refléter la nouvelle disponibilité.
+
+</Steps>
+
+<Highlight couleur="ambre">Toute validation se fait côté serveur, et `htmlspecialchars()` s'applique à chaque donnée affichée — nom, messages d'erreur, valeurs réinjectées dans le formulaire.</Highlight>
+
+### 6. Attribution aléatoire de places
+
+Fournissez une fonction qui **réserve aléatoirement** un certain nombre de places **libres**, pour simuler d'autres spectateurs. Une action (un bouton, une page) doit permettre de la déclencher, après quoi le plan de salle est mis à jour.
+
+```php
+<?php
+// À implémenter : réserve $n places libres au hasard.
+function reserverAleatoirement(array &$places, int $n): void { /* ... */ }
+```
+
+<MarginNote type="astuce">
+`array_rand`, `shuffle` ou `rand` sont vos alliés. Pensez à ne tirer **que parmi les places libres**, et à ne pas en réserver plus qu'il n'en reste.
+</MarginNote>
+
+### 7. Navigation, composition et page À propos
+
+Le site compte plusieurs pages (plan de salle, réservation, À propos, et éventuellement configuration). Elles partagent **le même en-tête, le même pied de page et la même barre de navigation**, assemblés par `include`. La page **À propos** présente la plateforme en quelques paragraphes (son but, son fonctionnement, ses limites).
+
+<Highlight>Le squelette HTML ne doit exister qu'à un seul endroit : un en-tête et un pied de page inclus par chaque page.</Highlight>
+
+## Contraintes techniques
+
+<Aside type="attention" title="Le cadre à respecter">
+- **PHP nature**, sans framework et **sans base de données** : l'état des places vit dans la **session** (`session_start()`, `$_SESSION`) ou, au choix, dans un fichier JSON.
+- **Validation côté serveur** obligatoire ; la validation HTML (`required`, `type="email"`) ne compte pas comme protection.
+- **`htmlspecialchars()`** sur tout ce qui s'affiche et provient de l'utilisateur ou de l'état.
+- Pages **assemblées par `include`** à partir de parties communes.
+- Le projet doit **tourner sur XAMPP**, déposé dans `htdocs`.
+</Aside>
+
+Une organisation de fichiers possible — à adapter :
+
+```text
+theatre-erabliere/
+├── index.php            // plan de salle
+├── reserver.php         // formulaire de réservation (dynamique)
+├── aleatoire.php        // déclenche l'attribution aléatoire
+├── a-propos.php         // présentation de la plateforme
+├── includes/
+│   ├── header.php       // <head>, ouverture du <body>, navigation
+│   ├── footer.php       // fermeture de la page
+│   └── fonctions.php    // genererPlaces, prixDeLaPlace, reserverPlace, reserverAleatoirement...
+└── data/
+    └── salle.php        // configuration par défaut (return [...])
+```
+
+<MarginNote type="rappel" titre="L'état dans la session">
+Au premier chargement, générez les places et rangez-les dans `$_SESSION`. Aux requêtes suivantes, **relisez** l'état depuis la session plutôt que de tout régénérer — sinon chaque rafraîchissement effacerait les réservations.
+</MarginNote>
+
+## Étapes suggérées
+
+<Steps>
+
+1. **Modéliser** : définir la configuration et écrire `genererPlaces`. Tester en affichant le nombre de places obtenues.
+
+2. **Afficher** le plan de salle (sections, rangées, état) avec un `foreach`.
+
+3. **Sélectionner** : rendre les places libres cliquables vers `reserver.php?place=...`.
+
+4. **Réserver** : formulaire dynamique, validation serveur, mise à jour de l'état dans la session, confirmation.
+
+5. **Aléatoire** : implémenter et brancher `reserverAleatoirement`.
+
+6. **Composer** : extraire l'en-tête et le pied de page, ajouter la page À propos et la navigation.
+
+7. **Finir** : échappement partout, messages clairs, un peu de style pour distinguer libre/réservé.
+
+</Steps>
+
+## Grille d'évaluation
+
+<table>
+  <thead>
+    <tr>
+      <th>Critère</th>
+      <th>Points</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Configuration de la salle et génération des places (fonctions, tableaux)</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <td>Tarification par section</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>Plan de salle et sélection d&apos;une place</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <td>Formulaire de réservation dynamique</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <td>Validation côté serveur et échappement (htmlspecialchars)</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <td>Mise à jour de l&apos;état et des disponibilités</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>Attribution aléatoire de places</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>Navigation, composition (gabarit) et page À propos</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>Qualité du code : fonctions, lisibilité, organisation des fichiers</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td><strong>Total</strong></td>
+      <td><strong>100</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+## Livrables
+
+<Steps>
+
+1. Une **archive** (`.zip`) du dossier du projet, prête à déposer dans `htdocs` et à ouvrir via `http://localhost/...`.
+
+2. Un fichier **`README.md`** : comment lancer le projet, la configuration de salle par défaut, et l'état des fonctionnalités réalisées.
+
+3. Un projet **fonctionnel sur XAMPP**, sans erreur PHP visible à l'écran.
+
+</Steps>
+
+## Pour aller plus loin (bonus)
+
+- **Persistance durable** : sauvegarder l'état dans un fichier JSON pour qu'il survive à la fermeture de la session.
+- **Annulation** : permettre de libérer une place réservée.
+- **Filtre** : afficher uniquement les places d'une section ou sous un certain prix (en `GET`).
+- **Récapitulatif** : une page qui liste les réservations et le **total** encaissé par section.
+- **Accessibilité et style** : un plan de salle lisible, des places réservées clairement distinguées, une mise en page responsive.
+
+<Aside type="exemple" title="Un fil conducteur avec le cours">
+Chaque exigence renvoie à un chapitre : la génération des places mobilise les [fonctions et tableaux](/cours/03-prog-avancee-php) ; le plan partagé et la page À propos, la [composition](/cours/04-navigation) ; le formulaire de réservation, les [formulaires et la validation](/cours/05-formulaires-validation). Le TP n'introduit rien de neuf — il vous demande de **tout faire tenir ensemble**.
+</Aside>

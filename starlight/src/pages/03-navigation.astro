@@ -1,0 +1,444 @@
+---
+// =============================================================================
+// 420-707-AH — Développement côté serveur
+// Exercices progressifs : navigation & composition de pages
+//
+// À déposer dans src/pages/. Réutilise le composant src/components/Exercice.astro.
+// =============================================================================
+import Exercice from "../components/Exercice.astro";
+
+const niveaux = [
+  { id: "niveau-1", label: "1 · Naviguer" },
+  { id: "niveau-2", label: "2 · Composer" },
+  { id: "niveau-3", label: "3 · Assembler" },
+];
+
+const exercices = [
+  // ===================== NIVEAU 1 : navigation ===============================
+  {
+    niveau: 1, num: "1.1", type: "Navigation", diff: 1,
+    titre: "Construire une URL avec paramètre",
+    enonce: "Construis une URL vers une page avec un paramètre dans la chaîne de requête. Encode la valeur pour qu'un espace, un & ou un accent ne casse pas le lien.",
+    signature: "urlPage(string $page, string $cle, string $valeur): string",
+    attendu: `urlPage('produits.php', 'categorie', 'café & thé');
+// produits.php?categorie=caf%C3%A9+%26+th%C3%A9`,
+    indice: "urlencode() rend une valeur sûre dans une URL : il transforme espaces, & et accents en codes. La chaîne de requête commence par ? puis cle=valeur.",
+    solution: `function urlPage(string $page, string $cle, string $valeur): string
+{
+    return $page . '?' . $cle . '=' . urlencode($valeur);
+}`,
+  },
+  {
+    niveau: 1, num: "1.2", type: "Navigation", diff: 1,
+    titre: "Lire la page demandée",
+    enonce: "Récupère la page demandée dans l'URL (?page=...). Si le paramètre est absent, retourne 'accueil' par défaut — jamais d'avertissement pour une clé manquante. Dans une vraie page, ce tableau serait $_GET.",
+    signature: "pageCourante(array $params): string",
+    attendu: `pageCourante(['page' => 'contact']); // 'contact'
+pageCourante([]);                    // 'accueil'`,
+    indice: "L'opérateur de coalescence des nuls ?? renvoie la valeur de gauche si elle existe, sinon celle de droite : $params['page'] ?? 'accueil'. C'est la façon propre de donner une valeur par défaut.",
+    solution: `function pageCourante(array $params): string
+{
+    return $params['page'] ?? 'accueil';
+}`,
+  },
+  {
+    niveau: 1, num: "1.3", type: "Navigation", diff: 2,
+    titre: "Un lien qui se sait actif",
+    enonce: "Génère un lien de navigation. Quand l'URL du lien correspond à la page courante, ajoute la classe \"actif\" pour la mettre en évidence dans le menu.",
+    signature: "lienNav(string $url, string $texte, string $courant): string",
+    attendu: `lienNav('contact', 'Contact', 'contact');
+// <a href="contact" class="actif">Contact</a>
+
+lienNav('contact', 'Contact', 'accueil');
+// <a href="contact">Contact</a>`,
+    indice: "Compare $url à $courant. Selon le résultat, prépare une chaîne class=\"actif\" ou une chaîne vide, puis insère-la dans la balise. N'oublie pas htmlspecialchars sur le texte affiché.",
+    solution: `function lienNav(string $url, string $texte, string $courant): string
+{
+    $texte = htmlspecialchars($texte);
+    $classe = $url === $courant ? ' class="actif"' : '';
+    return '<a href="' . $url . '"' . $classe . '>' . $texte . '</a>';
+}`,
+  },
+  {
+    niveau: 1, num: "1.4", type: "Navigation", diff: 2,
+    titre: "Le menu complet",
+    enonce: "Construis une barre de navigation à partir d'une liste de pages (url => libellé). Chaque entrée passe par lienNav, et la page courante est mise en évidence. Réutilise ta fonction précédente.",
+    signature: "menu(array $pages, string $courant): string",
+    attendu: `$pages = ['accueil' => 'Accueil', 'contact' => 'Contact'];
+menu($pages, 'contact');
+// <nav><a href="accueil">Accueil</a><a href="contact" class="actif">Contact</a></nav>`,
+    indice: "Parcours le tableau avec foreach ($pages as $url => $libelle). Construis chaque lien avec lienNav(), accumule-les dans une chaîne (.=), puis enveloppe le tout dans <nav>...</nav>.",
+    solution: `function menu(array $pages, string $courant): string
+{
+    $liens = '';
+    foreach ($pages as $url => $libelle) {
+        $liens .= lienNav($url, $libelle, $courant);
+    }
+    return '<nav>' . $liens . '</nav>';
+}`,
+  },
+
+  // ===================== NIVEAU 2 : composition ==============================
+  {
+    niveau: 2, num: "2.1", type: "Composition", diff: 1,
+    titre: "L'en-tête et le pied de page",
+    enonce: "Une page web a presque toujours le même début (doctype, head, ouverture du body) et la même fin. Écris deux fonctions : entete() ouvre la page avec un titre, pied() la referme.",
+    signature: "entete(string $titre): string   ·   pied(): string",
+    attendu: `echo entete('Accueil');
+// <!doctype html><html lang="fr"><head><title>Accueil</title></head><body>
+
+echo pied();
+// </body></html>`,
+    indice: "Chaque fonction retourne un morceau de HTML. entete reçoit le titre à insérer dans <title> ; échappe-le avec htmlspecialchars. pied n'a besoin d'aucun paramètre.",
+    solution: `function entete(string $titre): string
+{
+    $titre = htmlspecialchars($titre);
+    return '<!doctype html><html lang="fr"><head><title>'
+        . $titre . '</title></head><body>';
+}
+
+function pied(): string
+{
+    return '</body></html>';
+}`,
+  },
+  {
+    niveau: 2, num: "2.2", type: "Composition", diff: 2,
+    titre: "Le gabarit (layout)",
+    enonce: "Plutôt que d'appeler entete et pied à la main sur chaque page, crée un gabarit qui enveloppe un contenu : en-tête, puis contenu, puis pied. Une seule fonction décide désormais de la structure de toutes les pages.",
+    signature: "gabarit(string $titre, string $contenu): string",
+    attendu: `echo gabarit('Accueil', '<h1>Bonjour</h1>');
+// ...<title>Accueil</title>... <h1>Bonjour</h1> ...</body></html>`,
+    indice: "gabarit ne réécrit pas le HTML : il appelle entete($titre), ajoute $contenu, puis pied(). Une fonction qui en compose d'autres — c'est tout le principe du layout.",
+    solution: `function gabarit(string $titre, string $contenu): string
+{
+    return entete($titre) . $contenu . pied();
+}`,
+  },
+  {
+    niveau: 2, num: "2.3", type: "Composition", diff: 2,
+    titre: "Des vrais fichiers : include",
+    enonce: "En projet réel, l'en-tête et le pied vivent dans des fichiers séparés qu'on insère avec include. Découpe cette page autonome en trois fichiers : entete.php, pied.php et accueil.php.",
+    avant: `<?php $titre = 'Accueil'; ?>
+<!doctype html>
+<html lang="fr">
+<head><title><?= htmlspecialchars($titre) ?></title></head>
+<body>
+    <h1>Bienvenue</h1>
+</body>
+</html>`,
+    indice: "include 'fichier.php'; insère le contenu du fichier à cet endroit, comme un copier-coller exécuté. Les variables définies AVANT l'include (comme $titre) sont visibles dans le fichier inclus. require fait pareil mais arrête tout si le fichier manque.",
+    solution: `// ── entete.php ──
+<!doctype html>
+<html lang="fr">
+<head><title><?= htmlspecialchars($titre) ?></title></head>
+<body>
+
+// ── pied.php ──
+</body>
+</html>
+
+// ── accueil.php ──
+<?php $titre = 'Accueil'; ?>
+<?php include 'entete.php'; ?>
+    <h1>Bienvenue</h1>
+<?php include 'pied.php'; ?>`,
+  },
+
+  // ===================== NIVEAU 3 : assembler ================================
+  {
+    niveau: 3, num: "3.1", type: "Refactor", diff: 2,
+    titre: "Trois pages, une seule structure",
+    enonce: "Trois pages répètent le même squelette HTML, seul le contenu change. Réécris-les en passant par gabarit() — la structure n'existe plus qu'à un seul endroit.",
+    avant: `// accueil.php
+echo '<!doctype html><html><head><title>Accueil</title></head><body>';
+echo '<h1>Bienvenue</h1>';
+echo '</body></html>';
+
+// contact.php
+echo '<!doctype html><html><head><title>Contact</title></head><body>';
+echo '<h1>Nous joindre</h1>';
+echo '</body></html>';`,
+    indice: "Le squelette répété, c'est gabarit(). Pour chaque page, il ne reste qu'à fournir un titre et un contenu. Le jour où tu changes le doctype ou ajoutes une feuille de style, un seul endroit à modifier.",
+    solution: `echo gabarit('Accueil', '<h1>Bienvenue</h1>');
+echo gabarit('Contact', '<h1>Nous joindre</h1>');`,
+  },
+  {
+    niveau: 3, num: "3.2", type: "Refactor", diff: 3,
+    titre: "Un seul point d'entrée (routeur)",
+    enonce: "Au lieu d'un fichier par page, un seul index.php lit ?page=... et affiche le bon contenu via le gabarit. Une page inconnue donne une 404. C'est le patron « contrôleur frontal ». Réutilise pageCourante() et gabarit().",
+    signature: "rendre(array $params): string",
+    attendu: `rendre(['page' => 'contact']); // page Contact, dans le gabarit
+rendre(['page' => 'xyz']);     // page « 404 — introuvable »
+rendre([]);                    // page Accueil (par défaut)`,
+    indice: "Un tableau associatif page => contenu fait office de table de routage. Récupère la page avec pageCourante(), cherche son contenu (?? pour la 404), puis enveloppe avec gabarit().",
+    solution: `function rendre(array $params): string
+{
+    $contenus = [
+        'accueil' => '<h1>Bienvenue</h1>',
+        'contact' => '<h1>Nous joindre</h1>',
+    ];
+
+    $page = pageCourante($params);
+    $contenu = $contenus[$page] ?? '<h1>404 — introuvable</h1>';
+
+    return gabarit(ucfirst($page), $contenu);
+}`,
+  },
+  {
+    niveau: 3, num: "3.3", type: "Assembler", diff: 3,
+    titre: "Le menu actif dans le gabarit",
+    enonce: "Dernière pièce : le gabarit doit afficher la barre de navigation avec la page courante mise en évidence. Assemble quatre fonctions déjà écrites pour produire une page complète. Tout se rejoint : navigation + composition.",
+    signature: "gabaritComplet(string $titre, string $contenu, string $courant): string",
+    attendu: `$contenu = '<h1>Nous joindre</h1>';
+gabaritComplet('Contact', $contenu, 'contact');
+// en-tête + <nav> (Contact actif) + contenu + pied`,
+    indice: "gabaritComplet enchaîne entete(), menu() (avec la page courante), le contenu, puis pied(). Définis la liste des pages une seule fois, en haut de la fonction.",
+    solution: `function gabaritComplet(string $titre, string $contenu, string $courant): string
+{
+    $pages = ['accueil' => 'Accueil', 'contact' => 'Contact'];
+
+    return entete($titre)
+        . menu($pages, $courant)
+        . $contenu
+        . pied();
+}`,
+  },
+];
+
+const parNiveau = (n) => exercices.filter((e) => e.niveau === n);
+const total = exercices.length;
+---
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Navigation & composition de pages · Exercices · 420-707-AH</title>
+  <style is:global>
+    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=Fira+Code:wght@400;500;600&display=swap");
+
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --ink: #1c2230;
+      --ink-soft: #515a6e;
+      --ink-faint: #8a93a6;
+      --line: #e6e9ef;
+      --line-strong: #d7dce6;
+      --accent: #4f46e5;
+      --accent-soft: #eef0fe;
+      --code-bg: #f4f5f8;
+      --code-ink: #2b3245;
+      --ok: #0f9d6b;
+      --radius: 12px;
+      --shadow: 0 1px 2px rgba(20,30,55,.05), 0 8px 24px rgba(20,30,55,.04);
+      --maxw: 900px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 130px; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    code, pre, .mono { font-family: "Fira Code", ui-monospace, monospace; }
+
+    .topbar { position: sticky; top: 0; z-index: 50; background: rgba(247,248,250,.9); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--line); }
+    .topbar-inner { max-width: var(--maxw); margin: 0 auto; padding: .8rem 1.5rem .65rem; }
+    .topbar-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .brand { font-weight: 800; letter-spacing: -.01em; font-size: .95rem; }
+    .brand span { color: var(--accent); }
+    .navspy { display: flex; gap: .25rem; margin-left: auto; flex-wrap: wrap; }
+    .navspy a { text-decoration: none; color: var(--ink-soft); font-size: .82rem; font-weight: 600; padding: .34rem .7rem; border-radius: 999px; transition: color .15s, background .15s; }
+    .navspy a:hover { color: var(--ink); background: var(--surface); }
+    .navspy a.active { color: var(--accent); background: var(--accent-soft); }
+
+    .progress { margin-top: .6rem; }
+    .progress-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
+    .progress-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+    .progress-count { font-size: .82rem; color: var(--ink-soft); }
+    .progress-count b { color: var(--accent); font-size: .95rem; }
+    .progress-track { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #7c74f0); border-radius: 999px; transition: width .35s ease; }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    .hero { padding: 3rem 0 2rem; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.1; letter-spacing: -.025em; margin: .6rem 0 .8rem; font-weight: 800; }
+    .hero p { font-size: 1.05rem; color: var(--ink-soft); max-width: 60ch; margin: 0; }
+
+    section { padding: 2.75rem 0 0; scroll-margin-top: 130px; }
+    .sec-head { display: flex; align-items: center; gap: .85rem; margin-bottom: .4rem; }
+    .sec-num { font-family: "Fira Code", monospace; font-size: .82rem; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: .22rem .6rem; border-radius: 7px; }
+    h2 { font-size: 1.5rem; letter-spacing: -.02em; margin: 0; font-weight: 800; }
+    .sec-intro { color: var(--ink-soft); margin: .2rem 0 1.5rem; max-width: 68ch; }
+
+    .callout { display: flex; gap: .85rem; align-items: flex-start; border-radius: var(--radius); padding: 1rem 1.15rem; margin: 1.25rem 0; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); }
+    .callout .ico { flex: none; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: .9rem; font-weight: 800; color: #fff; background: var(--accent); }
+    .callout p { margin: 0; font-size: .92rem; color: var(--ink-soft); }
+    .callout p b { color: var(--ink); }
+
+    .exo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem 1.35rem; margin: 1rem 0; box-shadow: var(--shadow); }
+    .exo-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .exo-meta { display: flex; align-items: center; gap: .6rem; }
+    .exo-num { font-family: "Fira Code", monospace; font-weight: 600; font-size: .82rem; color: var(--accent); }
+    .exo-type { font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); background: #f1f2f6; padding: .2rem .5rem; border-radius: 6px; }
+    .exo-diff { display: inline-flex; gap: 3px; align-items: center; }
+    .exo-diff .d { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+    .exo-diff .d.on { background: var(--accent); }
+    .exo-done { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--ink-faint); cursor: pointer; user-select: none; }
+    .exo-done input { width: 15px; height: 15px; accent-color: var(--ok); cursor: pointer; }
+    .exo-titre { font-size: 1.12rem; margin: .85rem 0 .35rem; font-weight: 700; letter-spacing: -.01em; }
+    .exo-enonce { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .95rem; }
+
+    .exo-sig { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .6rem 0; }
+    .exo-sig-k { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
+    .exo-sig code { font-size: .82rem; color: var(--code-ink); background: var(--code-bg); padding: .3rem .6rem; border-radius: 7px; }
+
+    .code { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin: .75rem 0; overflow: hidden; }
+    .code.small pre { font-size: .78rem; padding: .75rem .9rem; }
+    .code-head { display: flex; align-items: center; gap: .5rem; padding: .5rem .85rem; border-bottom: 1px solid var(--line); background: #fbfbfd; font-size: .72rem; color: var(--ink-faint); font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+    .code-head .fname { margin-left: .25rem; font-family: "Fira Code", monospace; }
+    .code pre { margin: 0; padding: 1rem 1.1rem; overflow-x: auto; font-size: .82rem; line-height: 1.6; color: var(--code-ink); tab-size: 4; }
+
+    .reveal { border: 1px solid var(--line); border-radius: 10px; margin-top: .65rem; overflow: hidden; background: #fbfbfd; }
+    .reveal summary { cursor: pointer; list-style: none; padding: .65rem .9rem; font-size: .85rem; font-weight: 600; color: var(--ink-soft); display: flex; align-items: center; gap: .55rem; transition: color .15s; }
+    .reveal summary::-webkit-details-marker { display: none; }
+    .reveal summary:hover { color: var(--ink); }
+    .rev-ic { font-family: "Fira Code", monospace; font-size: .72rem; font-weight: 700; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; color: #fff; }
+    .reveal.hint .rev-ic { background: var(--ink-faint); }
+    .reveal.sol .rev-ic { background: var(--ok); }
+    .reveal[open] summary { border-bottom: 1px solid var(--line); }
+    .reveal-body { padding: .35rem .9rem 1rem; }
+    .reveal-body p { margin: .5rem 0 0; font-size: .9rem; color: var(--ink-soft); }
+    .reveal.sol .reveal-body { padding-bottom: .9rem; }
+
+    .foot { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: .82rem; }
+
+    @media (max-width: 720px) {
+      .navspy { width: 100%; margin-left: 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .15rem; }
+      .exo-head { flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="brand">420-707-AH · <span>Navigation & composition</span></div>
+        <nav class="navspy" aria-label="Niveaux">
+          {niveaux.map((n) => (
+            <a href={`#${n.id}`} data-spy={n.id}>{n.label}</a>
+          ))}
+        </nav>
+      </div>
+      <div class="progress">
+        <div class="progress-row">
+          <span class="progress-label">Progression</span>
+          <span class="progress-count"><b id="pcount">0</b> / <span id="ptotal">{total}</span> exercices</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="pfill"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">Développement côté serveur</div>
+      <h1>Navigation & composition de pages</h1>
+      <p>
+        Un site, c'est plusieurs pages reliées qui partagent une même structure.
+        On apprend à relier les pages, puis à composer leur squelette avec des
+        fonctions, et enfin à tout assembler en un mini-site cohérent.
+      </p>
+    </div>
+
+    <section id="niveau-1">
+      <div class="sec-head"><span class="sec-num">Niveau 1</span><h2>Naviguer entre les pages</h2></div>
+      <p class="sec-intro">
+        On construit des liens, on lit ce que l'URL demande (<code>?page=...</code>),
+        et on met en évidence la page où l'on se trouve. La barre de navigation
+        devient une fonction qui se génère toute seule.
+      </p>
+      {parNiveau(1).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <section id="niveau-2">
+      <div class="sec-head"><span class="sec-num">Niveau 2</span><h2>Composer une page à partir de morceaux</h2></div>
+      <p class="sec-intro">
+        Toutes les pages partagent le même squelette. Plutôt que de le recopier,
+        on le découpe en briques réutilisables — en-tête, pied, gabarit — qu'on
+        assemble. C'est exactement ce que font <code>include</code> et le layout.
+      </p>
+      <div class="callout">
+        <span class="ico">i</span>
+        <p>Deux manières de réutiliser : des <b>fonctions</b> qui retournent du HTML (2.1–2.2), ou des <b>fichiers</b> insérés avec <code>include</code> (2.3). Même idée, deux outils.</p>
+      </div>
+      {parNiveau(2).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <section id="niveau-3">
+      <div class="sec-head"><span class="sec-num">Niveau 3</span><h2>Assembler un mini-site</h2></div>
+      <p class="sec-intro">
+        On réunit tout : une structure unique pour toutes les pages, un point
+        d'entrée qui choisit le contenu, et un menu qui sait où l'on est.
+      </p>
+      <div class="callout">
+        <span class="ico">↺</span>
+        <p>Le bouquet final (3.3) rassemble <b>entete</b> + <b>pied</b> (2.1), <b>menu</b> (1.4) et <b>gabarit</b> (2.2). Chaque fonction écrite plus tôt redevient une brique.</p>
+      </div>
+      {parNiveau(3).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <footer class="foot">
+      420-707-AH — Développement côté serveur · Exercices progressifs : navigation & composition · Ta progression est gardée dans ce navigateur.
+    </footer>
+  </div>
+
+  <script is:inline>
+    (function () {
+      const links = Array.from(document.querySelectorAll('.navspy a'));
+      const map = new Map(links.map((a) => [a.dataset.spy, a]));
+      const targets = Array.from(map.keys()).map((id) => document.getElementById(id)).filter(Boolean);
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            links.forEach((l) => l.classList.remove('active'));
+            const link = map.get(e.target.id);
+            if (link) link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-25% 0px -65% 0px', threshold: 0 });
+      targets.forEach((t) => obs.observe(t));
+
+      const checks = Array.from(document.querySelectorAll('.exo-check'));
+      const fill = document.getElementById('pfill');
+      const count = document.getElementById('pcount');
+      const ptotal = document.getElementById('ptotal');
+      const KEY = 'aeh707-exo-navigation';
+      const total = checks.length;
+      if (ptotal) ptotal.textContent = String(total);
+
+      let done = {};
+      try { done = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { done = {}; }
+
+      function render() {
+        const n = checks.filter((c) => c.checked).length;
+        if (count) count.textContent = String(n);
+        if (fill) fill.style.width = total ? (n / total * 100) + '%' : '0%';
+      }
+      checks.forEach((c) => {
+        const id = c.dataset.exo;
+        if (done[id]) c.checked = true;
+        c.addEventListener('change', () => {
+          done[id] = c.checked;
+          try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {}
+          render();
+        });
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

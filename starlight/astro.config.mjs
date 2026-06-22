@@ -31,18 +31,23 @@ export default defineConfig({
 						{ label: 'Prise en main des bases de PHP', slug: 'cours/02-prog-base-php' },
 						{ label: 'Notions avancées de PHP', slug: 'cours/03-prog-avancee-php' },
 						{ label: 'Navigation et composition de pages', slug: 'cours/04-navigation' },
+						{ label: 'Formulaires et GET / POST', slug: 'cours/05-formulaires' },
 					]
 				},
 				{
 					label: 'Exercices',
 					items: [
-						{ label: 'Exercices', slug: 'exercices/01-introduction' },
+						{ label: 'Premiers pas avec PHP', slug: 'exercices/01-introduction' },
+						{ label: 'Les fonctions en PHP', slug: 'exercices/02-fonctions' },
+						{ label: 'La navigation en PHP', slug: 'exercices/03-navigation' },
 					]
 				},
-				{
-					label: 'Projet',
-					slug: 'projet'
-				},
+				// {
+				// 	label: 'Travaux',
+				// 	items: [
+				// 		{ label: 'Sélecteur de place', slug: 'tps/01-selecteur-place' },
+				// 	]
+				// },
 				{
 					label: 'Reference',
 					items: [{

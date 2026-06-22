@@ -1,0 +1,286 @@
+---
+title: Formulaires et validation
+description: Envoyer des données avec GET et POST, les récupérer avec $_GET et $_POST, valider côté serveur, et afficher sans danger avec htmlspecialchars, avec une ouverture sur les API.
+sidebar:
+  order: 6
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+import FluxSequence from '../../../components/react/FluxSequence.jsx';
+
+Jusqu'ici, les pages produisaient du contenu. Avec les **formulaires**, le visiteur envoie à son tour des données au serveur : un message de contact, une recherche, une inscription. Ce chapitre suit ce trajet de bout en bout : envoyer, récupérer, valider, puis afficher sans danger.
+
+## Rappel : méthodes HTTP et communication client-serveur
+
+Chaque requête HTTP porte une **méthode** qui annonce l'intention du client. Deux nous occupent ici :
+
+- <Highlight>`GET`</Highlight> demande une ressource (lire une page, une recherche). 
+- <Highlight>`POST`</Highlight> envoie des données au serveur pour qu'il les traite (un message, une création).
+
+<MarginNote type="rappel">
+D'autres méthodes existent — `PUT`, `PATCH`, `DELETE` — surtout employées par les API, abordées en fin de page. Pour un formulaire de site classique, `GET` et `POST` suffisent.
+</MarginNote>
+
+Soumettre un formulaire, c'est donc déclencher une **nouvelle requête**, exactement le cycle vu au chapitre [Introduction](/cours/01-introduction), mais cette fois la requête transporte les données saisies.
+
+<FluxSequence
+  client:visible
+  titre="L'envoi d'un formulaire, du navigateur à la réponse"
+  acteurs={[
+    { key: "client", label: "Client (navigateur)", icone: "laptop" },
+    { key: "serveur", label: "Serveur (Apache + PHP)", icone: "server" },
+  ]}
+  etapes={[
+    { de: 0, vers: 1, texte: "Requête POST", note: "POST /contact.php (+ données)" },
+    { de: 1, vers: 1, texte: "Récupère et valide les données" },
+    { de: 1, vers: 0, texte: "Réponse : HTML (confirmation ou erreurs)", statut: 200 },
+  ]}
+/>
+
+<Aside type="syntaxe" title="GET est sûr, POST ne l'est pas">
+`GET` est censé seulement **lire** : on peut le rejouer, le mettre en signet, sans effet de bord. `POST` peut **modifier** l'état du serveur (enregistrer un message, créer un compte). C'est pourquoi recharger une page après un `POST` affiche souvent l'avertissement « voulez-vous renvoyer les données ? ».
+</Aside>
+
+## Envoyer des données : GET et POST
+
+Côté navigateur, c'est la balise `<form>` qui prépare l'envoi. Deux attributs comptent : `action` (l'URL qui recevra la requête) et `method` (`get` ou `post`).
+
+```html
+<form action="contact.php" method="post">
+  <label>Nom <input type="text" name="nom"></label>
+  <label>Courriel <input type="email" name="courriel"></label>
+  <label>Message <textarea name="message"></textarea></label>
+  <button type="submit">Envoyer</button>
+</form>
+```
+
+<Highlight couleur="ambre">L'attribut `name` de chaque champ est essentiel</Highlight> : c'est lui qui devient la **clé** sous laquelle PHP retrouvera la valeur. Un champ sans `name` n'est jamais transmis.
+
+La méthode change l'endroit où voyagent les données :
+
+- Avec **`GET`**, elles partent dans l'**URL**, à la suite d'un `?` : `produits.php?q=sirop`. Visibles, partageables, mais limitées en taille — parfait pour une recherche ou un filtre.
+- Avec **`POST`**, elles partent dans le **corps** de la requête, hors de l'URL — adapté à l'envoi d'un message, d'un mot de passe, d'un fichier.
+
+```html
+<!-- Une recherche : GET, car on ne fait que lire -->
+<form action="produits.php" method="get">
+  <input type="search" name="q" placeholder="Rechercher un produit">
+  <button type="submit">Chercher</button>
+</form>
+```
+
+<MarginNote type="rappel" titre="En JavaScript">
+Le même choix existe côté client avec `fetch` : `fetch("/contact.php", { method: "POST", body: ... })`. La notion de méthode HTTP est commune aux deux mondes ; PHP la reçoit, JavaScript l'émet.
+</MarginNote>
+
+## Récupérer les données : `$_GET` et `$_POST`
+
+Côté serveur, PHP dépose les données reçues dans deux **superglobales**, des tableaux associatifs accessibles partout : `$_GET` pour les données d'URL, `$_POST` pour celles du corps. La clé est le `name` du champ.
+
+```php
+<?php
+$nom = $_POST["nom"] ?? "";
+$courriel = $_POST["courriel"] ?? "";
+$message = $_POST["message"] ?? "";
+```
+
+<MarginNote type="astuce">
+L'opérateur `??` (vu aux [bases](/cours/02-prog-base-php)) donne une valeur par défaut quand la clé est absente — au premier affichage de la page, avant tout envoi, `$_POST` est vide. Sans `??`, on récolterait un avertissement.
+</MarginNote>
+
+On distingue souvent le **premier affichage** du formulaire de son **traitement** en testant la méthode de la requête :
+
+```php
+<?php
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  // Le formulaire a été soumis : on récupère et on traite.
+  $nom = $_POST["nom"] ?? "";
+}
+```
+
+<Aside type="erreur" title="Le name, pas le id">
+PHP retrouve les valeurs par l'attribut `name`, jamais par `id`. `<input id="courriel">` sans `name` n'apparaîtra pas dans `$_POST`. C'est l'erreur la plus fréquente quand « le formulaire ne reçoit rien ».
+</Aside>
+
+<MarginNote type="attention" titre="$_REQUEST">
+Il existe aussi `$_REQUEST`, qui mélange `$_GET`, `$_POST` et les cookies. Évitez-le : en étant explicite sur la provenance des données (`$_POST` ou `$_GET`), votre code reste clair et plus sûr.
+</MarginNote>
+
+## Valider les données côté serveur
+
+Une donnée qui arrive du client n'est jamais fiable : un champ peut être vide, mal rempli, ou trafiqué en contournant le navigateur. <Highlight couleur="ambre">Toute validation qui compte doit se faire côté serveur.</Highlight> La validation HTML (`required`, `type="email"`) améliore le confort, mais se désactive en deux clics : elle ne protège rien.
+
+La démarche habituelle : rassembler les erreurs dans un tableau, puis ne traiter que si ce tableau est vide.
+
+```php
+<?php
+$erreurs = [];
+
+$nom = trim($_POST["nom"] ?? "");
+$courriel = trim($_POST["courriel"] ?? "");
+$message = trim($_POST["message"] ?? "");
+
+if ($nom === "") {
+  $erreurs[] = "Le nom est obligatoire.";
+}
+
+if (!filter_var($courriel, FILTER_VALIDATE_EMAIL)) {
+  $erreurs[] = "Le courriel n'est pas valide.";
+}
+
+if (mb_strlen($message) < 10) {
+  $erreurs[] = "Le message doit contenir au moins 10 caractères.";
+}
+
+if (empty($erreurs)) {
+  // Les données sont valides : on les enregistre, on envoie le courriel, etc.
+  echo "Merci, votre message a bien été reçu.";
+}
+```
+
+<Aside type="syntaxe" title="filter_var, la validation outillée">
+`filter_var($valeur, FILTER_VALIDATE_EMAIL)` renvoie le courriel s'il est valide, ou `false` sinon. PHP fournit d'autres filtres prêts à l'emploi : `FILTER_VALIDATE_INT`, `FILTER_VALIDATE_FLOAT`, `FILTER_VALIDATE_URL`. Mieux vaut s'y appuyer que d'écrire ses propres expressions régulières.
+</Aside>
+
+Quand des erreurs existent, on réaffiche le formulaire avec les messages — et en **conservant** ce que la personne avait déjà saisi, pour ne pas la forcer à tout retaper.
+
+<Steps>
+
+1. Si le tableau `$erreurs` n'est pas vide, on les liste au-dessus du formulaire :
+
+   ```php
+   <?php foreach ($erreurs as $erreur): ?>
+     <p class="erreur"><?php echo htmlspecialchars($erreur); ?></p>
+   <?php endforeach; ?>
+   ```
+
+2. On repré-remplit chaque champ avec la valeur reçue, échappée :
+
+   ```php
+   <input type="text" name="nom"
+          value="<?php echo htmlspecialchars($nom); ?>">
+   ```
+
+</Steps>
+
+<MarginNote type="definition" titre="Valider vs nettoyer">
+**Valider**, c'est décider si une donnée est acceptable (et refuser sinon). **Nettoyer** (assainir), c'est la transformer pour la rendre utilisable — `trim()` retire les espaces superflus, par exemple. Les deux se combinent souvent.
+</MarginNote>
+
+## Ouverture sur les API
+
+Un formulaire n'est qu'une façon, parmi d'autres, d'envoyer des données. Une **API** reçoit des requêtes émises non par un navigateur, mais par un autre programme (application mobile, autre serveur, code JavaScript). Le principe reste le même — une requête, une méthode, une réponse — mais les données échangées sont généralement du **JSON** plutôt que du HTML.
+
+```php
+<?php
+// Au lieu de renvoyer du HTML, on renvoie du JSON.
+header("Content-Type: application/json");
+echo json_encode(["statut" => "ok", "message" => "Reçu"]);
+```
+
+```php
+<?php
+// Et on lit un corps JSON envoyé par le client (au lieu de $_POST).
+$donnees = json_decode(file_get_contents("php://input"), true);
+```
+
+<MarginNote type="lien">
+Les méthodes `GET`, `POST`, `PUT`, `DELETE` prennent ici tout leur sens : elles structurent une API REST (lire, créer, remplacer, supprimer). C'est le sujet d'un prochain chapitre — mais la discipline de validation reste exactement la même.
+</MarginNote>
+
+<Highlight>Quelle que soit la porte d'entrée — formulaire ou API — les données viennent de l'extérieur : on les valide toujours avant de leur faire confiance.</Highlight>
+
+## Sécurité de l'affichage : `htmlspecialchars`
+
+La validation protège l'**entrée**. Il reste à protéger la **sortie**. Afficher tel quel un texte fourni par l'utilisateur ouvre la porte à une attaque par injection : si quelqu'un saisit comme nom une balise `<script>`, elle s'exécutera dans le navigateur de **tous** ceux qui verront la page. C'est une faille **XSS** (*cross-site scripting*).
+
+```php
+<?php
+// DANGEREUX : la saisie est insérée telle quelle dans la page.
+echo "Bonjour " . $_GET["nom"];
+```
+
+La parade est systématique : `htmlspecialchars()` convertit les caractères dangereux (`<`, `>`, `&`, `"`) en entités HTML inoffensives. La balise s'affiche alors comme du texte, sans s'exécuter.
+
+```php
+<?php
+// SÛR : la saisie est échappée avant l'affichage.
+echo "Bonjour " . htmlspecialchars($_GET["nom"]);
+```
+
+<Highlight couleur="ambre">Échappez avec `htmlspecialchars()` tout ce qui provient de l'utilisateur, au moment de l'afficher</Highlight> — dans le corps de la page comme dans les attributs (`value="..."`). C'est le même réflexe que pour les fragments réutilisés, vu au chapitre [Navigation et composition](/cours/04-navigation).
+
+<Aside type="attention" title="Échapper au bon moment">
+On échappe à l'**affichage**, pas au stockage. On garde la donnée brute (en base, par exemple) et on applique `htmlspecialchars()` à chaque fois qu'on la ressort dans une page HTML. Échapper trop tôt mènerait à des données déformées, échappées plusieurs fois.
+</Aside>
+
+<Checkpoint question="Pourquoi valider côté serveur si le formulaire a déjà des attributs required et type='email' ?">
+Parce que la validation HTML s'exécute dans le navigateur, où elle peut être désactivée ou contournée (en envoyant la requête directement, sans passer par le formulaire). Le serveur est le seul endroit que le client ne contrôle pas : c'est là que la validation doit avoir lieu pour de bon.
+</Checkpoint>
+
+## Récapitulatif
+
+- Soumettre un formulaire déclenche une **requête HTTP** : `GET` pour lire (données dans l'URL), `POST` pour envoyer (données dans le corps).
+- L'attribut **`name`** de chaque champ devient la clé dans `$_GET` ou `$_POST` ; `??` gère l'absence de valeur.
+- La **validation côté serveur** est la seule qui compte : rassemblez les erreurs, ne traitez que si elles sont absentes, et réaffichez la saisie en cas d'échec.
+- Une **API** reçoit les mêmes requêtes en JSON : même discipline de validation.
+- À l'**affichage**, `htmlspecialchars()` sur toute donnée venue de l'utilisateur évite les failles XSS.
+
+## Quiz
+
+<Quiz
+  client:visible
+  question="Quelle méthode pour envoyer un message de contact à enregistrer ?"
+  options={[
+    { texte: "GET, car c'est plus simple", correct: false },
+    { texte: "POST, car on envoie des données qui modifient l'état du serveur", correct: true },
+    { texte: "Peu importe, le résultat est identique", correct: false },
+  ]}
+  retour="POST : les données voyagent dans le corps de la requête, hors de l'URL, et la méthode signale une action qui modifie l'état (enregistrer le message)."
+/>
+
+<Quiz
+  client:visible
+  question="Sous quelle clé PHP retrouve-t-il la valeur de <input name='courriel'> envoyé en POST ?"
+  options={[
+    { texte: "$_POST['courriel']", correct: true },
+    { texte: "$_GET['courriel']", correct: false },
+    { texte: "$_POST['id']", correct: false },
+  ]}
+  retour="C'est l'attribut name qui sert de clé, dans la superglobale correspondant à la méthode : ici $_POST['courriel']."
+/>
+
+<Quiz
+  client:visible
+  question="À quoi sert htmlspecialchars() ?"
+  options={[
+    { texte: "À vérifier qu'un champ n'est pas vide", correct: false },
+    { texte: "À échapper les caractères spéciaux à l'affichage pour éviter les injections (XSS)", correct: true },
+    { texte: "À transformer un formulaire en JSON", correct: false },
+  ]}
+  retour="htmlspecialchars() neutralise les caractères comme <, > et & au moment d'afficher une donnée, ce qui empêche l'exécution de code injecté. Ce n'est pas de la validation, mais de la sécurité d'affichage."
+/>
+
+<Quiz
+  client:visible
+  question="Pourquoi ne pas se fier à la validation HTML (required, type='email') seule ?"
+  options={[
+    { texte: "Parce qu'elle est trop lente", correct: false },
+    { texte: "Parce qu'elle s'exécute côté client et peut être contournée", correct: true },
+    { texte: "Parce qu'elle ne fonctionne pas dans tous les navigateurs", correct: false },
+  ]}
+  retour="La validation HTML est un confort côté client ; on peut la désactiver ou envoyer la requête sans le formulaire. Seule la validation côté serveur protège réellement."
+/>
+
+## Références
+
+- [MDN : méthodes de requête HTTP](https://developer.mozilla.org/fr/docs/Web/HTTP/Methods)
+- [MDN : les formulaires web](https://developer.mozilla.org/fr/docs/Learn/Forms)
+- [php.net : filter_var et filtres de validation](https://www.php.net/manual/fr/function.filter-var.php)
+- [php.net : htmlspecialchars](https://www.php.net/manual/fr/function.htmlspecialchars.php)
+- [OWASP : prévention des failles XSS](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)

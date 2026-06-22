@@ -1,0 +1,51 @@
+---
+// Démo d'intégration — SandboxEditor (php-wasm) en îlot React.
+// Requiert @astrojs/react + react + les paquets CodeMirror (déjà dans ton projet).
+import SandboxEditor from "../components/react/SandboxEditor.tsx";
+
+// Exemple 1 — DÉFINIT une fonction : seul php-wasm peut l'exécuter.
+const ex1 = `<?php
+function formaterPrix(float $montant): string {
+    return number_format($montant, 2, ',', ' ') . ' $';
+}
+
+echo formaterPrix(1234.5);`;
+
+// Exemple 2 — foreach + composition : du vrai PHP de bout en bout.
+const ex2 = `<?php
+function lienNav(string $url, string $texte, string $courant): string {
+    $classe = $url === $courant ? ' class="actif"' : '';
+    return '<a href="' . $url . '"' . $classe . '>'
+        . htmlspecialchars($texte) . '</a>';
+}
+
+$pages = ['accueil' => 'Accueil', 'contact' => 'Contact'];
+foreach ($pages as $url => $libelle) {
+    echo lienNav($url, $libelle, 'contact') . "\\n";
+}`;
+---
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Démo SandboxEditor · php-wasm</title>
+  <style is:global>
+    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap");
+    body { font-family:"Plus Jakarta Sans",sans-serif; max-width:760px; margin:0 auto; padding:2.5rem 1.5rem; color:#1c2230; background:#f7f8fa; }
+    h1 { letter-spacing:-.02em; } h2 { font-size:1.05rem; margin:2rem 0 .6rem; }
+    p { color:#515a6e; }
+  </style>
+</head>
+<body>
+  <h1>SandboxEditor — démo php-wasm</h1>
+  <p>Ces deux exemples <strong>définissent des fonctions</strong> et utilisent <code>foreach</code> : seul le moteur php-wasm peut les exécuter. Au premier « Exécuter », PHP se télécharge (une fois), puis tout tourne dans le navigateur.</p>
+
+  <h2>1 · Fonction de formatage</h2>
+  <SandboxEditor client:visible initialCode={ex1} label="Formater un prix" />
+
+  <h2>2 · Boucle + composition</h2>
+  <SandboxEditor client:visible initialCode={ex2} label="Menu de navigation" />
+</body>
+</html>

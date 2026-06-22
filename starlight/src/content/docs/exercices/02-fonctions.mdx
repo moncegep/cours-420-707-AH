@@ -1,0 +1,430 @@
+---
+title: Exercices — Définir des fonctions
+description: "Trois niveaux d'exercices progressifs pour définir des fonctions en PHP : calcul, recherche, tri et formatage, puis génération de HTML, puis simplification de code."
+sidebar:
+  order: 8
+---
+
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+
+
+## Niveau 1 — Calculer, chercher, trier, formater
+
+Le cœur du métier : une fonction reçoit des données, fait un travail, retourne un résultat. On commence par des fonctions **pures**, sans HTML — juste de la logique propre et testable.
+
+### 1.1 · L'aire d'un rectangle
+
+**Calcul**
+
+Écris une fonction qui calcule l'aire d'un rectangle à partir de sa largeur et de sa hauteur. Premier réflexe : des paramètres en entrée, une valeur en sortie.
+
+Signature : `aireRectangle(float $largeur, float $hauteur): float`
+
+```php
+echo aireRectangle(4, 3);   // 12
+echo aireRectangle(2.5, 2); // 5
+```
+
+<Checkpoint question="Indice">
+Une fonction se déclare avec le mot-clé `function`, reçoit ses paramètres entre parenthèses, et renvoie une valeur avec `return`. Le type de chaque paramètre se place devant lui ; le type de retour, après les deux-points.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function aireRectangle(float $largeur, float $hauteur): float
+{
+    return $largeur * $hauteur;
+}
+```
+
+</Checkpoint>
+
+### 1.2 · La moyenne d'une liste de notes
+
+**Calcul**
+
+Calcule la moyenne d'un tableau de notes. Si le tableau est vide, retourne 0 — jamais de division par zéro.
+
+Signature : `moyenne(array $notes): float`
+
+```php
+echo moyenne([80, 90, 100]); // 90
+echo moyenne([]);            // 0
+```
+
+<Checkpoint question="Indice">
+`array_sum()` additionne toutes les valeurs d'un tableau, `count()` les compte. Vérifie le cas du tableau vide **avant** de diviser.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function moyenne(array $notes): float
+{
+    if (count($notes) === 0) {
+        return 0;
+    }
+    return array_sum($notes) / count($notes);
+}
+```
+
+</Checkpoint>
+
+### 1.3 · Trouver un étudiant par son nom
+
+**Recherche**
+
+À partir d'une liste d'étudiants (chacun est un tableau associatif avec « nom » et « note »), retourne celui dont le nom correspond, ou `null` s'il n'existe pas. Le type de retour `?array` veut dire « un tableau, ou `null` ».
+
+Signature : `chercherEtudiant(array $etudiants, string $nom): ?array`
+
+```php
+$liste = [
+    ['nom' => 'Amélie', 'note' => 87],
+    ['nom' => 'Liam',   'note' => 72],
+];
+
+chercherEtudiant($liste, 'Liam'); // ['nom' => 'Liam', 'note' => 72]
+chercherEtudiant($liste, 'Zoé');  // null
+```
+
+<Checkpoint question="Indice">
+Parcours le tableau avec `foreach`. Dès qu'un nom correspond, `return` l'étudiant : la fonction s'arrête immédiatement. Si la boucle se termine sans rien trouver, `return null` à la fin.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function chercherEtudiant(array $etudiants, string $nom): ?array
+{
+    foreach ($etudiants as $etudiant) {
+        if ($etudiant['nom'] === $nom) {
+            return $etudiant;
+        }
+    }
+    return null;
+}
+```
+
+</Checkpoint>
+
+### 1.4 · Classer les étudiants par note
+
+**Tri** 
+
+Trie une liste d'étudiants de la note la plus haute à la plus basse. La fonction retourne un nouveau tableau trié, sans modifier l'original.
+
+Signature : `trierParNote(array $etudiants): array`
+
+```php
+// Entrée :  Amélie 87, Liam 72, Sofia 94
+// Sortie :  Sofia 94, Amélie 87, Liam 72
+```
+
+<Checkpoint question="Indice">
+`usort()` trie un tableau à l'aide d'une fonction de comparaison qui reçoit deux éléments. L'opérateur spaceship `<=>` renvoie -1, 0 ou 1. Pour un ordre décroissant, compare `$b` à `$a` (et non l'inverse).
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function trierParNote(array $etudiants): array
+{
+    usort($etudiants, function (array $a, array $b): int {
+        return $b['note'] <=> $a['note'];
+    });
+    return $etudiants;
+}
+```
+
+</Checkpoint>
+
+### 1.5 · Afficher un prix à la québécoise
+
+**Formatage**
+
+Formate un montant en dollars : deux décimales, virgule comme séparateur décimal, espace pour les milliers, et le symbole `$` à la fin.
+
+Signature : `formaterPrix(float $montant): string`
+
+```php
+formaterPrix(1234.5); // "1 234,50 $"
+formaterPrix(9.9);    // "9,90 $"
+```
+
+<Checkpoint question="Indice">
+`number_format($n, 2, ',', ' ')` fait presque tout : 2 décimales, virgule pour les décimales, espace pour les milliers. Il ne reste qu'à coller le symbole avec la concaténation (le point `.`).
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function formaterPrix(float $montant): string
+{
+    return number_format($montant, 2, ',', ' ') . ' $';
+}
+```
+
+</Checkpoint>
+
+## Niveau 2 — Générer des fragments HTML
+
+Côté serveur, produire du HTML est l'essentiel du travail. Une fonction peut retourner une chaîne HTML : c'est la brique de base d'un site dynamique. Règle de sécurité dès maintenant : on échappe toute donnée externe avec `htmlspecialchars()`.
+
+<Aside type="exemple" title="Ces fonctions se composent">
+L'exercice **2.4 réutilise 2.2**. Une petite fonction bien nommée par fragment, et tes pages s'assemblent comme des briques.
+</Aside>
+
+### 2.1 · Une fonction qui retourne un lien
+
+**HTML**
+
+Génère une balise de lien HTML. Échappe toujours les valeurs qui viennent de l'extérieur pour ne pas injecter de code non voulu dans la page.
+
+Signature : `lien(string $url, string $texte): string`
+
+```php
+lien('/profil', 'Mon profil');
+// <a href="/profil">Mon profil</a>
+```
+
+<Checkpoint question="Indice">
+`htmlspecialchars()` transforme les caractères dangereux (`<`, `>`, `"`, `&`) en entités HTML inoffensives. Applique-le sur chaque valeur externe avant de l'insérer dans la chaîne.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function lien(string $url, string $texte): string
+{
+    $url = htmlspecialchars($url);
+    $texte = htmlspecialchars($texte);
+    return '<a href="' . $url . '">' . $texte . '</a>';
+}
+```
+
+</Checkpoint>
+
+### 2.2 · Un badge coloré réutilisable
+
+**HTML**
+
+Génère un badge dont la couleur est choisie par une classe CSS. Donne au paramètre couleur une valeur par défaut pour pouvoir l'appeler avec un seul argument.
+
+Signature : `badge(string $texte, string $couleur = 'neutre'): string`
+
+```php
+badge('Réussi', 'succes');
+// <span class="badge badge--succes">Réussi</span>
+
+badge('À faire');
+// <span class="badge badge--neutre">À faire</span>
+```
+
+<Checkpoint question="Indice">
+Un paramètre peut avoir une valeur par défaut directement dans la signature : `string $couleur = 'neutre'`. Les paramètres avec valeur par défaut se placent toujours **après** ceux qui n'en ont pas.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function badge(string $texte, string $couleur = 'neutre'): string
+{
+    $texte = htmlspecialchars($texte);
+    return '<span class="badge badge--' . $couleur . '">' . $texte . '</span>';
+}
+```
+
+</Checkpoint>
+
+### 2.3 · Transformer un tableau en liste
+
+**HTML**
+
+Transforme un tableau de chaînes en une liste HTML `<ul>`. Chaque élément devient un `<li>`, échappé. C'est le pont entre des données et leur affichage.
+
+Signature : `listeHtml(array $items): string`
+
+```php
+listeHtml(['Pomme', 'Poire']);
+// <ul><li>Pomme</li><li>Poire</li></ul>
+```
+
+<Checkpoint question="Indice">
+Accumule chaque `<li>` dans une boucle, dans un tableau temporaire. À la fin, `implode()` colle tous les morceaux ensemble, et tu enveloppes le tout dans `<ul>...</ul>`.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function listeHtml(array $items): string
+{
+    $lignes = [];
+    foreach ($items as $item) {
+        $lignes[] = '<li>' . htmlspecialchars($item) . '</li>';
+    }
+    return '<ul>' . implode('', $lignes) . '</ul>';
+}
+```
+
+</Checkpoint>
+
+### 2.4 · Composer une carte d'étudiant
+
+**HTML**
+
+Compose une carte complète en réutilisant ta fonction `badge()`. La couleur du badge dépend de la note : 60 ou plus → succès, sinon → échec. Une fonction peut très bien en appeler une autre.
+
+Signature : `carteEtudiant(array $etudiant): string`
+
+```php
+carteEtudiant(['nom' => 'Sofia', 'note' => 94]);
+// <div class="carte">
+//     <h3>Sofia</h3>
+//     <span class="badge badge--succes">94 %</span>
+// </div>
+```
+
+<Checkpoint question="Indice">
+Décide la couleur avec un opérateur ternaire (`$note >= 60 ? 'succes' : 'echec'`), appelle `badge()` pour le fragment du badge, puis assemble le tout. Le heredoc (`<<<HTML`) rend les blocs multi-lignes plus lisibles que la concaténation.
+</Checkpoint>
+
+## Niveau 3 — Simplifier du code avec des fonctions
+
+Les fonctions ne servent pas qu'à découper : elles éliminent la répétition. On part ici de code qui se répète et on l'allège en extrayant une fonction. La méthode : repérer ce qui **change** et ce qui reste **pareil**.
+
+<Aside type="exemple" title="La boucle se boucle">
+Ces exercices réutilisent ce que tu as déjà écrit : `aireRectangle` (1.1), `carteEtudiant` (2.4) et `formaterPrix` (1.5). Écrire une fonction une fois, la rappeler partout.
+</Aside>
+
+### 3.1 · Du copier-coller au calcul réutilisable
+
+**Refactorisation**
+
+Ce code répète la même opération (largeur × hauteur) trois fois. Extrais une fonction `aireRectangle` et réécris le code en l'appelant.
+
+Code à simplifier :
+
+```php
+$aire1 = 4 * 3;
+echo "Salon : $aire1 m²\n";
+
+$aire2 = 5 * 2.5;
+echo "Cuisine : $aire2 m²\n";
+
+$aire3 = 6 * 4;
+echo "Chambre : $aire3 m²\n";
+```
+
+<Checkpoint question="Indice">
+Repère ce qui **change** (les dimensions) et ce qui reste **pareil** (la multiplication). Ce qui reste pareil devient le corps de la fonction ; ce qui change devient les paramètres.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function aireRectangle(float $largeur, float $hauteur): float
+{
+    return $largeur * $hauteur;
+}
+
+echo "Salon : "   . aireRectangle(4, 3)   . " m²\n";
+echo "Cuisine : " . aireRectangle(5, 2.5) . " m²\n";
+echo "Chambre : " . aireRectangle(6, 4)   . " m²\n";
+```
+
+</Checkpoint>
+
+### 3.2 · Trois cartes presque identiques
+
+**Refactorisation**
+
+Seules les données changent d'une carte à l'autre, la structure HTML est toujours la même. Extrais une fonction `carteEtudiant`, mets les données dans un tableau, et génère les cartes avec une boucle.
+
+Code à simplifier :
+
+```php
+echo '<div class="carte"><h3>Amélie</h3><p>87 %</p></div>';
+echo '<div class="carte"><h3>Liam</h3><p>72 %</p></div>';
+echo '<div class="carte"><h3>Sofia</h3><p>94 %</p></div>';
+```
+
+<Checkpoint question="Indice">
+La structure HTML, c'est le gabarit ; le nom et la note, ce sont les données. Sépare les deux : un tableau pour les données, une fonction pour le gabarit, une boucle pour répéter.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function carteEtudiant(array $etudiant): string
+{
+    $nom = htmlspecialchars($etudiant['nom']);
+    $note = (int) $etudiant['note'];
+    return '<div class="carte"><h3>' . $nom . '</h3><p>' . $note . ' %</p></div>';
+}
+
+$etudiants = [
+    ['nom' => 'Amélie', 'note' => 87],
+    ['nom' => 'Liam',   'note' => 72],
+    ['nom' => 'Sofia',  'note' => 94],
+];
+
+foreach ($etudiants as $etudiant) {
+    echo carteEtudiant($etudiant);
+}
+```
+
+</Checkpoint>
+
+### 3.3 · Le calcul des taxes en double
+
+**Refactorisation**
+
+Le calcul des taxes (TPS 5 %, TVQ 9,975 %) est recopié pour chaque reçu. Extrais une fonction `calculerTotal` qui reçoit le sous-total et retourne le total taxes comprises. Le jour où un taux change, un seul endroit à modifier.
+
+Code à simplifier :
+
+```php
+// Reçu 1
+$sousTotal1 = 100.00;
+$tps1 = $sousTotal1 * 0.05;
+$tvq1 = $sousTotal1 * 0.09975;
+$total1 = $sousTotal1 + $tps1 + $tvq1;
+
+// Reçu 2
+$sousTotal2 = 49.99;
+$tps2 = $sousTotal2 * 0.05;
+$tvq2 = $sousTotal2 * 0.09975;
+$total2 = $sousTotal2 + $tps2 + $tvq2;
+```
+
+<Checkpoint question="Indice">
+Toute la logique des taxes tient en quelques lignes identiques. Mets-la dans une fonction qui reçoit le sous-total et retourne le total. Bonus : combine-la avec `formaterPrix()` du niveau 1 pour afficher le résultat.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function calculerTotal(float $sousTotal): float
+{
+    $tps = $sousTotal * 0.05;
+    $tvq = $sousTotal * 0.09975;
+    return $sousTotal + $tps + $tvq;
+}
+
+$total1 = calculerTotal(100.00);
+$total2 = calculerTotal(49.99);
+
+// Tout se combine :
+echo formaterPrix(calculerTotal(100.00)); // "114,98 $"
+```
+
+</Checkpoint>
+
+{/* <MarginNote type="astuce">
+Une fois ces fonctions écrites, gardez-les : la [feuille sur la navigation](/cours/exercices-navigation) et le [travail pratique](/cours/tp-selecteur-places) réutilisent exactement les mêmes réflexes.
+</MarginNote> */}

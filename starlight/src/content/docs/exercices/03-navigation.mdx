@@ -1,0 +1,370 @@
+---
+title: Exercices — Navigation et composition
+description: "Trois niveaux d'exercices progressifs : relier les pages d'un site PHP, composer une page à partir de morceaux réutilisables, puis assembler un mini-site complet."
+sidebar:
+  order: 9
+---
+
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+
+Un site, c'est plusieurs pages reliées qui partagent une même structure. On apprend à relier les pages, puis à composer leur squelette avec des fonctions, et enfin à tout assembler en un mini-site cohérent.
+
+## Niveau 1 — Naviguer entre les pages
+
+On construit des liens, on lit ce que l'URL demande (`?page=...`), et on met en évidence la page où l'on se trouve. La barre de navigation devient une fonction qui se génère toute seule.
+
+### 1.1 · Construire une URL avec paramètre
+
+**Navigation**
+
+Construis une URL vers une page avec un paramètre dans la chaîne de requête. Encode la valeur pour qu'un espace, un `&` ou un accent ne casse pas le lien.
+
+Signature : `urlPage(string $page, string $cle, string $valeur): string`
+
+```php
+urlPage('produits.php', 'categorie', 'café & thé');
+// produits.php?categorie=caf%C3%A9+%26+th%C3%A9
+```
+
+<Checkpoint question="Indice">
+`urlencode()` rend une valeur sûre dans une URL : il transforme espaces, `&` et accents en codes. La chaîne de requête commence par `?` puis `cle=valeur`.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function urlPage(string $page, string $cle, string $valeur): string
+{
+    return $page . '?' . $cle . '=' . urlencode($valeur);
+}
+```
+
+</Checkpoint>
+
+### 1.2 · Lire la page demandée
+
+**Navigation**
+
+Récupère la page demandée dans l'URL (`?page=...`). Si le paramètre est absent, retourne `'accueil'` par défaut — jamais d'avertissement pour une clé manquante. Dans une vraie page, ce tableau serait `$_GET`.
+
+Signature : `pageCourante(array $params): string`
+
+```php
+pageCourante(['page' => 'contact']); // 'contact'
+pageCourante([]);                    // 'accueil'
+```
+
+<Checkpoint question="Indice">
+L'opérateur de coalescence des nuls `??` renvoie la valeur de gauche si elle existe, sinon celle de droite : `$params['page'] ?? 'accueil'`. C'est la façon propre de donner une valeur par défaut.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function pageCourante(array $params): string
+{
+    return $params['page'] ?? 'accueil';
+}
+```
+
+</Checkpoint>
+
+### 1.3 · Un lien qui se sait actif
+
+**Navigation**
+
+Génère un lien de navigation. Quand l'URL du lien correspond à la page courante, ajoute la classe « actif » pour la mettre en évidence dans le menu.
+
+Signature : `lienNav(string $url, string $texte, string $courant): string`
+
+```php
+lienNav('contact', 'Contact', 'contact');
+// <a href="contact" class="actif">Contact</a>
+
+lienNav('contact', 'Contact', 'accueil');
+// <a href="contact">Contact</a>
+```
+
+<Checkpoint question="Indice">
+Compare `$url` à `$courant`. Selon le résultat, prépare une chaîne ` class="actif"` ou une chaîne vide, puis insère-la dans la balise. N'oublie pas `htmlspecialchars()` sur le texte affiché.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function lienNav(string $url, string $texte, string $courant): string
+{
+    $texte = htmlspecialchars($texte);
+    $classe = $url === $courant ? ' class="actif"' : '';
+    return '<a href="' . $url . '"' . $classe . '>' . $texte . '</a>';
+}
+```
+
+</Checkpoint>
+
+### 1.4 · Le menu complet
+
+**Navigation**
+
+Construis une barre de navigation à partir d'une liste de pages (`url => libellé`). Chaque entrée passe par `lienNav`, et la page courante est mise en évidence. Réutilise ta fonction précédente.
+
+Signature : `menu(array $pages, string $courant): string`
+
+```php
+$pages = ['accueil' => 'Accueil', 'contact' => 'Contact'];
+menu($pages, 'contact');
+// <nav><a href="accueil">Accueil</a><a href="contact" class="actif">Contact</a></nav>
+```
+
+<Checkpoint question="Indice">
+Parcours le tableau avec `foreach ($pages as $url => $libelle)`. Construis chaque lien avec `lienNav()`, accumule-les dans une chaîne (`.=`), puis enveloppe le tout dans `<nav>...</nav>`.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function menu(array $pages, string $courant): string
+{
+    $liens = '';
+    foreach ($pages as $url => $libelle) {
+        $liens .= lienNav($url, $libelle, $courant);
+    }
+    return '<nav>' . $liens . '</nav>';
+}
+```
+
+</Checkpoint>
+
+## Niveau 2 — Composer une page à partir de morceaux
+
+Toutes les pages partagent le même squelette. Plutôt que de le recopier, on le découpe en briques réutilisables — en-tête, pied, gabarit — qu'on assemble. C'est exactement ce que font `include` et le layout.
+
+<Aside type="exemple" title="Deux manières de réutiliser">
+Des **fonctions** qui retournent du HTML (2.1–2.2), ou des **fichiers** insérés avec `include` (2.3). Même idée, deux outils.
+</Aside>
+
+### 2.1 · L'en-tête et le pied de page
+
+**Composition**
+
+Une page web a presque toujours le même début (doctype, `<head>`, ouverture du `<body>`) et la même fin. Écris deux fonctions : `entete()` ouvre la page avec un titre, `pied()` la referme.
+
+Signature : `entete(string $titre): string` et `pied(): string`
+
+```php
+echo entete('Accueil');
+// <!doctype html><html lang="fr"><head><title>Accueil</title></head><body>
+
+echo pied();
+// </body></html>
+```
+
+<Checkpoint question="Indice">
+Chaque fonction retourne un morceau de HTML. `entete` reçoit le titre à insérer dans `<title>` ; échappe-le avec `htmlspecialchars()`. `pied` n'a besoin d'aucun paramètre.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function entete(string $titre): string
+{
+    $titre = htmlspecialchars($titre);
+    return '<!doctype html><html lang="fr"><head><title>'
+        . $titre . '</title></head><body>';
+}
+
+function pied(): string
+{
+    return '</body></html>';
+}
+```
+
+</Checkpoint>
+
+### 2.2 · Le gabarit (layout)
+
+**Composition**
+
+Plutôt que d'appeler `entete` et `pied` à la main sur chaque page, crée un gabarit qui enveloppe un contenu : en-tête, puis contenu, puis pied. Une seule fonction décide désormais de la structure de toutes les pages.
+
+Signature : `gabarit(string $titre, string $contenu): string`
+
+```php
+echo gabarit('Accueil', '<h1>Bonjour</h1>');
+// ...<title>Accueil</title>... <h1>Bonjour</h1> ...</body></html>
+```
+
+<Checkpoint question="Indice">
+`gabarit` ne réécrit pas le HTML : il appelle `entete($titre)`, ajoute `$contenu`, puis `pied()`. Une fonction qui en compose d'autres — c'est tout le principe du layout.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function gabarit(string $titre, string $contenu): string
+{
+    return entete($titre) . $contenu . pied();
+}
+```
+
+</Checkpoint>
+
+### 2.3 · Des vrais fichiers : include
+
+**Composition**
+
+En projet réel, l'en-tête et le pied vivent dans des fichiers séparés qu'on insère avec `include`. Découpe cette page autonome en trois fichiers : `entete.php`, `pied.php` et `accueil.php`.
+
+Page à découper :
+
+```php
+<?php $titre = 'Accueil'; ?>
+<!doctype html>
+<html lang="fr">
+<head><title><?= htmlspecialchars($titre) ?></title></head>
+<body>
+    <h1>Bienvenue</h1>
+</body>
+</html>
+```
+
+<Checkpoint question="Indice">
+`include 'fichier.php';` insère le contenu du fichier à cet endroit, comme un copier-coller exécuté. Les variables définies **avant** l'include (comme `$titre`) sont visibles dans le fichier inclus. `require` fait pareil mais arrête tout si le fichier manque.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+// ── entete.php ──
+<!doctype html>
+<html lang="fr">
+<head><title><?= htmlspecialchars($titre) ?></title></head>
+<body>
+
+// ── pied.php ──
+</body>
+</html>
+
+// ── accueil.php ──
+<?php $titre = 'Accueil'; ?>
+<?php include 'entete.php'; ?>
+    <h1>Bienvenue</h1>
+<?php include 'pied.php'; ?>
+```
+
+</Checkpoint>
+
+## Niveau 3 — Assembler un mini-site
+
+On réunit tout : une structure unique pour toutes les pages, un point d'entrée qui choisit le contenu, et un menu qui sait où l'on est.
+
+<Aside type="exemple" title="Tout se rejoint">
+Le bouquet final (3.3) rassemble `entete` + `pied` (2.1), `menu` (1.4) et `gabarit` (2.2). Chaque fonction écrite plus tôt redevient une brique.
+</Aside>
+
+### 3.1 · Trois pages, une seule structure
+
+**Refactorisation**
+
+Trois pages répètent le même squelette HTML, seul le contenu change. Réécris-les en passant par `gabarit()` — la structure n'existe plus qu'à un seul endroit.
+
+Code à simplifier :
+
+```php
+// accueil.php
+echo '<!doctype html><html><head><title>Accueil</title></head><body>';
+echo '<h1>Bienvenue</h1>';
+echo '</body></html>';
+
+// contact.php
+echo '<!doctype html><html><head><title>Contact</title></head><body>';
+echo '<h1>Nous joindre</h1>';
+echo '</body></html>';
+```
+
+<Checkpoint question="Indice">
+Le squelette répété, c'est `gabarit()`. Pour chaque page, il ne reste qu'à fournir un titre et un contenu. Le jour où tu changes le doctype ou ajoutes une feuille de style, un seul endroit à modifier.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+echo gabarit('Accueil', '<h1>Bienvenue</h1>');
+echo gabarit('Contact', '<h1>Nous joindre</h1>');
+```
+
+</Checkpoint>
+
+### 3.2 · Un seul point d'entrée (routeur)
+
+**Refactorisation**
+
+Au lieu d'un fichier par page, un seul `index.php` lit `?page=...` et affiche le bon contenu via le gabarit. Une page inconnue donne une 404. C'est le patron « contrôleur frontal ». Réutilise `pageCourante()` et `gabarit()`.
+
+Signature : `rendre(array $params): string`
+
+```php
+rendre(['page' => 'contact']); // page Contact, dans le gabarit
+rendre(['page' => 'xyz']);     // page « 404 — introuvable »
+rendre([]);                    // page Accueil (par défaut)
+```
+
+<Checkpoint question="Indice">
+Un tableau associatif `page => contenu` fait office de table de routage. Récupère la page avec `pageCourante()`, cherche son contenu (`??` pour la 404), puis enveloppe avec `gabarit()`.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function rendre(array $params): string
+{
+    $contenus = [
+        'accueil' => '<h1>Bienvenue</h1>',
+        'contact' => '<h1>Nous joindre</h1>',
+    ];
+
+    $page = pageCourante($params);
+    $contenu = $contenus[$page] ?? '<h1>404 — introuvable</h1>';
+
+    return gabarit(ucfirst($page), $contenu);
+}
+```
+
+</Checkpoint>
+
+### 3.3 · Le menu actif dans le gabarit
+
+**Assemblage**
+
+Dernière pièce : le gabarit doit afficher la barre de navigation avec la page courante mise en évidence. Assemble quatre fonctions déjà écrites pour produire une page complète. Tout se rejoint : navigation + composition.
+
+Signature : `gabaritComplet(string $titre, string $contenu, string $courant): string`
+
+```php
+$contenu = '<h1>Nous joindre</h1>';
+gabaritComplet('Contact', $contenu, 'contact');
+// en-tête + <nav> (Contact actif) + contenu + pied
+```
+
+<Checkpoint question="Indice">
+`gabaritComplet` enchaîne `entete()`, `menu()` (avec la page courante), le contenu, puis `pied()`. Définis la liste des pages une seule fois, en haut de la fonction.
+</Checkpoint>
+
+<Checkpoint question="Solution">
+
+```php
+function gabaritComplet(string $titre, string $contenu, string $courant): string
+{
+    $pages = ['accueil' => 'Accueil', 'contact' => 'Contact'];
+
+    return entete($titre)
+        . menu($pages, $courant)
+        . $contenu
+        . pied();
+}
+```
+
+</Checkpoint>

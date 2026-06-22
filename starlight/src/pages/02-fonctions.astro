@@ -1,0 +1,531 @@
+---
+// =============================================================================
+// 420-707-AH — Développement côté serveur
+// Exercices progressifs : définir des fonctions en PHP
+//
+// Page autonome à déposer dans src/pages/ (ex. src/pages/exercices-fonctions.astro).
+// Le composant Exercice.astro va dans src/components/.
+// Styles globaux ici ; le composant ne fait que produire le markup.
+// =============================================================================
+import Exercice from "../components/Exercice.astro";
+
+const niveaux = [
+  { id: "niveau-1", label: "1 · Calcul & données" },
+  { id: "niveau-2", label: "2 · Fragments HTML" },
+  { id: "niveau-3", label: "3 · Simplifier" },
+];
+
+// --- Données partagées entre plusieurs énoncés (domaine « étudiants ») -------
+
+const exercices = [
+  // ===================== NIVEAU 1 : calcul / recherche / tri / formatage =====
+  {
+    niveau: 1, num: "1.1", type: "Calcul", diff: 1,
+    titre: "L'aire d'un rectangle",
+    enonce: "Écris une fonction qui calcule l'aire d'un rectangle à partir de sa largeur et de sa hauteur. Premier réflexe : des paramètres en entrée, une valeur en sortie.",
+    signature: "aireRectangle(float $largeur, float $hauteur): float",
+    attendu: `echo aireRectangle(4, 3);   // 12
+echo aireRectangle(2.5, 2); // 5`,
+    indice: "Une fonction se déclare avec le mot-clé function, reçoit ses paramètres entre parenthèses, et renvoie une valeur avec return. La déclaration : type de chaque paramètre, puis type de retour après les deux-points.",
+    solution: `function aireRectangle(float $largeur, float $hauteur): float
+{
+    return $largeur * $hauteur;
+}`,
+  },
+  {
+    niveau: 1, num: "1.2", type: "Calcul", diff: 1,
+    titre: "La moyenne d'une liste de notes",
+    enonce: "Calcule la moyenne d'un tableau de notes. Si le tableau est vide, retourne 0 — jamais de division par zéro.",
+    signature: "moyenne(array $notes): float",
+    attendu: `echo moyenne([80, 90, 100]); // 90
+echo moyenne([]);            // 0`,
+    indice: "array_sum() additionne toutes les valeurs d'un tableau, count() les compte. Vérifie le cas du tableau vide AVANT de diviser.",
+    solution: `function moyenne(array $notes): float
+{
+    if (count($notes) === 0) {
+        return 0;
+    }
+    return array_sum($notes) / count($notes);
+}`,
+  },
+  {
+    niveau: 1, num: "1.3", type: "Recherche", diff: 2,
+    titre: "Trouver un étudiant par son nom",
+    enonce: "À partir d'une liste d'étudiants (chacun est un tableau associatif avec « nom » et « note »), retourne celui dont le nom correspond, ou null s'il n'existe pas. Ce type de retour ?array veut dire « un tableau, ou null ».",
+    signature: "chercherEtudiant(array $etudiants, string $nom): ?array",
+    attendu: `$liste = [
+    ['nom' => 'Amélie', 'note' => 87],
+    ['nom' => 'Liam',   'note' => 72],
+];
+
+chercherEtudiant($liste, 'Liam'); // ['nom' => 'Liam', 'note' => 72]
+chercherEtudiant($liste, 'Zoé');  // null`,
+    indice: "Parcours le tableau avec foreach. Dès qu'un nom correspond, return l'étudiant : la fonction s'arrête immédiatement. Si la boucle se termine sans rien trouver, return null à la fin.",
+    solution: `function chercherEtudiant(array $etudiants, string $nom): ?array
+{
+    foreach ($etudiants as $etudiant) {
+        if ($etudiant['nom'] === $nom) {
+            return $etudiant;
+        }
+    }
+    return null;
+}`,
+  },
+  {
+    niveau: 1, num: "1.4", type: "Tri", diff: 2,
+    titre: "Classer les étudiants par note",
+    enonce: "Trie une liste d'étudiants de la note la plus haute à la plus basse. La fonction retourne un nouveau tableau trié, sans modifier l'original.",
+    signature: "trierParNote(array $etudiants): array",
+    attendu: `// Entrée :  Amélie 87, Liam 72, Sofia 94
+// Sortie :  Sofia 94, Amélie 87, Liam 72`,
+    indice: "usort() trie un tableau à l'aide d'une fonction de comparaison qui reçoit deux éléments. L'opérateur spaceship <=> renvoie -1, 0 ou 1. Pour un ordre décroissant, compare $b à $a (et non l'inverse).",
+    solution: `function trierParNote(array $etudiants): array
+{
+    usort($etudiants, function (array $a, array $b): int {
+        return $b['note'] <=> $a['note'];
+    });
+    return $etudiants;
+}`,
+  },
+  {
+    niveau: 1, num: "1.5", type: "Formatage", diff: 2,
+    titre: "Afficher un prix à la québécoise",
+    enonce: "Formate un montant en dollars : deux décimales, virgule comme séparateur décimal, espace pour les milliers, et le symbole $ à la fin.",
+    signature: "formaterPrix(float $montant): string",
+    attendu: `formaterPrix(1234.5); // "1 234,50 $"
+formaterPrix(9.9);    // "9,90 $"`,
+    indice: "number_format($n, 2, ',', ' ') fait presque tout : 2 décimales, virgule pour les décimales, espace pour les milliers. Il ne reste qu'à coller le symbole avec la concaténation (le point).",
+    solution: `function formaterPrix(float $montant): string
+{
+    return number_format($montant, 2, ',', ' ') . ' $';
+}`,
+  },
+
+  // ===================== NIVEAU 2 : fragments HTML ===========================
+  {
+    niveau: 2, num: "2.1", type: "HTML", diff: 1,
+    titre: "Une fonction qui retourne un lien",
+    enonce: "Génère une balise de lien HTML. Échappe toujours les valeurs qui viennent de l'extérieur pour ne pas injecter de code non voulu dans la page.",
+    signature: "lien(string $url, string $texte): string",
+    attendu: `lien('/profil', 'Mon profil');
+// <a href="/profil">Mon profil</a>`,
+    indice: "htmlspecialchars() transforme les caractères dangereux (< > \" &) en entités HTML inoffensives. Applique-le sur chaque valeur externe avant de l'insérer dans la chaîne.",
+    solution: `function lien(string $url, string $texte): string
+{
+    $url = htmlspecialchars($url);
+    $texte = htmlspecialchars($texte);
+    return '<a href="' . $url . '">' . $texte . '</a>';
+}`,
+  },
+  {
+    niveau: 2, num: "2.2", type: "HTML", diff: 1,
+    titre: "Un badge coloré réutilisable",
+    enonce: "Génère un badge dont la couleur est choisie par une classe CSS. Donne au paramètre couleur une valeur par défaut pour pouvoir l'appeler avec un seul argument.",
+    signature: "badge(string $texte, string $couleur = 'neutre'): string",
+    attendu: `badge('Réussi', 'succes');
+// <span class="badge badge--succes">Réussi</span>
+
+badge('À faire');
+// <span class="badge badge--neutre">À faire</span>`,
+    indice: "Un paramètre peut avoir une valeur par défaut directement dans la signature : string $couleur = 'neutre'. Les paramètres avec valeur par défaut se placent toujours après ceux qui n'en ont pas.",
+    solution: `function badge(string $texte, string $couleur = 'neutre'): string
+{
+    $texte = htmlspecialchars($texte);
+    return '<span class="badge badge--' . $couleur . '">' . $texte . '</span>';
+}`,
+  },
+  {
+    niveau: 2, num: "2.3", type: "HTML", diff: 2,
+    titre: "Transformer un tableau en liste",
+    enonce: "Transforme un tableau de chaînes en une liste HTML <ul>. Chaque élément devient un <li>, échappé. C'est le pont entre des données et leur affichage.",
+    signature: "listeHtml(array $items): string",
+    attendu: `listeHtml(['Pomme', 'Poire']);
+// <ul><li>Pomme</li><li>Poire</li></ul>`,
+    indice: "Accumule chaque <li> dans une boucle, dans un tableau temporaire. À la fin, implode() colle tous les morceaux ensemble, et tu enveloppes le tout dans <ul>...</ul>.",
+    solution: `function listeHtml(array $items): string
+{
+    $lignes = [];
+    foreach ($items as $item) {
+        $lignes[] = '<li>' . htmlspecialchars($item) . '</li>';
+    }
+    return '<ul>' . implode('', $lignes) . '</ul>';
+}`,
+  },
+  {
+    niveau: 2, num: "2.4", type: "HTML", diff: 3,
+    titre: "Composer une carte d'étudiant",
+    enonce: "Compose une carte complète en réutilisant ta fonction badge(). La couleur du badge dépend de la note : 60 ou plus → succès, sinon → échec. Une fonction peut très bien en appeler une autre.",
+    signature: "carteEtudiant(array $etudiant): string",
+    attendu: `carteEtudiant(['nom' => 'Sofia', 'note' => 94]);
+// <div class="carte">
+//     <h3>Sofia</h3>
+//     <span class="badge badge--succes">94 %</span>
+// </div>`,
+    indice: "Décide la couleur avec un opérateur ternaire ($note >= 60 ? 'succes' : 'echec'), appelle badge() pour le fragment du badge, puis assemble le tout. Le heredoc (<<<HTML) rend les blocs multi-lignes beaucoup plus lisibles que la concaténation.",
+    solution: `function carteEtudiant(array $etudiant): string
+{
+    $nom = htmlspecialchars($etudiant['nom']);
+    $note = (int) $etudiant['note'];
+    $couleur = $note >= 60 ? 'succes' : 'echec';
+    $badge = badge("$note %", $couleur);
+
+    return <<<HTML
+<div class="carte">
+    <h3>$nom</h3>
+    $badge
+</div>
+HTML;
+}`,
+  },
+
+  // ===================== NIVEAU 3 : simplifier avec des fonctions ============
+  {
+    niveau: 3, num: "3.1", type: "Refactor", diff: 2,
+    titre: "Du copier-coller au calcul réutilisable",
+    enonce: "Ce code répète la même opération (largeur × hauteur) trois fois. Extrais une fonction aireRectangle et réécris le code en l'appelant.",
+    avant: `$aire1 = 4 * 3;
+echo "Salon : $aire1 m²\\n";
+
+$aire2 = 5 * 2.5;
+echo "Cuisine : $aire2 m²\\n";
+
+$aire3 = 6 * 4;
+echo "Chambre : $aire3 m²\\n";`,
+    indice: "Repère ce qui CHANGE (les dimensions) et ce qui reste PAREIL (la multiplication). Ce qui reste pareil devient le corps de la fonction ; ce qui change devient les paramètres.",
+    solution: `function aireRectangle(float $largeur, float $hauteur): float
+{
+    return $largeur * $hauteur;
+}
+
+echo "Salon : "   . aireRectangle(4, 3)   . " m²\\n";
+echo "Cuisine : " . aireRectangle(5, 2.5) . " m²\\n";
+echo "Chambre : " . aireRectangle(6, 4)   . " m²\\n";`,
+  },
+  {
+    niveau: 3, num: "3.2", type: "Refactor", diff: 2,
+    titre: "Trois cartes presque identiques",
+    enonce: "Seules les données changent d'une carte à l'autre, la structure HTML est toujours la même. Extrais une fonction carteEtudiant, mets les données dans un tableau, et génère les cartes avec une boucle.",
+    avant: `echo '<div class="carte"><h3>Amélie</h3><p>87 %</p></div>';
+echo '<div class="carte"><h3>Liam</h3><p>72 %</p></div>';
+echo '<div class="carte"><h3>Sofia</h3><p>94 %</p></div>';`,
+    indice: "La structure HTML, c'est le gabarit ; le nom et la note, ce sont les données. Sépare les deux : un tableau pour les données, une fonction pour le gabarit, une boucle pour répéter.",
+    solution: `function carteEtudiant(array $etudiant): string
+{
+    $nom = htmlspecialchars($etudiant['nom']);
+    $note = (int) $etudiant['note'];
+    return '<div class="carte"><h3>' . $nom . '</h3><p>' . $note . ' %</p></div>';
+}
+
+$etudiants = [
+    ['nom' => 'Amélie', 'note' => 87],
+    ['nom' => 'Liam',   'note' => 72],
+    ['nom' => 'Sofia',  'note' => 94],
+];
+
+foreach ($etudiants as $etudiant) {
+    echo carteEtudiant($etudiant);
+}`,
+  },
+  {
+    niveau: 3, num: "3.3", type: "Refactor", diff: 3,
+    titre: "Le calcul des taxes en double",
+    enonce: "Le calcul des taxes (TPS 5 %, TVQ 9,975 %) est recopié pour chaque reçu. Extrais une fonction calculerTotal qui reçoit le sous-total et retourne le total taxes comprises. Le jour où un taux change, un seul endroit à modifier.",
+    avant: `// Reçu 1
+$sousTotal1 = 100.00;
+$tps1 = $sousTotal1 * 0.05;
+$tvq1 = $sousTotal1 * 0.09975;
+$total1 = $sousTotal1 + $tps1 + $tvq1;
+
+// Reçu 2
+$sousTotal2 = 49.99;
+$tps2 = $sousTotal2 * 0.05;
+$tvq2 = $sousTotal2 * 0.09975;
+$total2 = $sousTotal2 + $tps2 + $tvq2;`,
+    indice: "Toute la logique des taxes tient en quelques lignes identiques. Mets-la dans une fonction qui reçoit le sous-total et retourne le total. Bonus : combine-la avec formaterPrix() du niveau 1 pour afficher le résultat.",
+    solution: `function calculerTotal(float $sousTotal): float
+{
+    $tps = $sousTotal * 0.05;
+    $tvq = $sousTotal * 0.09975;
+    return $sousTotal + $tps + $tvq;
+}
+
+$total1 = calculerTotal(100.00);
+$total2 = calculerTotal(49.99);
+
+// Tout se combine :
+echo formaterPrix(calculerTotal(100.00)); // "114,98 $"`,
+  },
+];
+
+const parNiveau = (n) => exercices.filter((e) => e.niveau === n);
+const total = exercices.length;
+---
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Définir des fonctions en PHP · Exercices · 420-707-AH</title>
+  <style is:global>
+    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=Fira+Code:wght@400;500;600&display=swap");
+
+    :root {
+      --bg: #f7f8fa;
+      --surface: #ffffff;
+      --ink: #1c2230;
+      --ink-soft: #515a6e;
+      --ink-faint: #8a93a6;
+      --line: #e6e9ef;
+      --line-strong: #d7dce6;
+      --accent: #4f46e5;
+      --accent-soft: #eef0fe;
+      --code-bg: #f4f5f8;
+      --code-ink: #2b3245;
+      --ok: #0f9d6b;
+      --ok-soft: #e6f6ef;
+      --warn: #c2410c;
+      --radius: 12px;
+      --shadow: 0 1px 2px rgba(20,30,55,.05), 0 8px 24px rgba(20,30,55,.04);
+      --maxw: 900px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 130px; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    code, pre, .mono { font-family: "Fira Code", ui-monospace, monospace; }
+
+    /* ---- Top bar + progress ---- */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(247,248,250,.9);
+      backdrop-filter: saturate(140%) blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner { max-width: var(--maxw); margin: 0 auto; padding: .8rem 1.5rem .65rem; }
+    .topbar-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .brand { font-weight: 800; letter-spacing: -.01em; font-size: .95rem; }
+    .brand span { color: var(--accent); }
+    .navspy { display: flex; gap: .25rem; margin-left: auto; flex-wrap: wrap; }
+    .navspy a {
+      text-decoration: none; color: var(--ink-soft); font-size: .82rem; font-weight: 600;
+      padding: .34rem .7rem; border-radius: 999px; transition: color .15s, background .15s;
+    }
+    .navspy a:hover { color: var(--ink); background: var(--surface); }
+    .navspy a.active { color: var(--accent); background: var(--accent-soft); }
+
+    .progress { margin-top: .6rem; }
+    .progress-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
+    .progress-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+    .progress-count { font-size: .82rem; color: var(--ink-soft); }
+    .progress-count b { color: var(--accent); font-size: .95rem; }
+    .progress-track { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #7c74f0); border-radius: 999px; transition: width .35s ease; }
+
+    /* ---- Layout ---- */
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* ---- Hero ---- */
+    .hero { padding: 3rem 0 2rem; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); line-height: 1.1; letter-spacing: -.025em; margin: .6rem 0 .8rem; font-weight: 800; }
+    .hero p { font-size: 1.05rem; color: var(--ink-soft); max-width: 60ch; margin: 0; }
+
+    /* ---- Section / niveau ---- */
+    section { padding: 2.75rem 0 0; scroll-margin-top: 130px; }
+    .sec-head { display: flex; align-items: center; gap: .85rem; margin-bottom: .4rem; }
+    .sec-num { font-family: "Fira Code", monospace; font-size: .82rem; font-weight: 600; color: var(--accent); background: var(--accent-soft); padding: .22rem .6rem; border-radius: 7px; }
+    h2 { font-size: 1.5rem; letter-spacing: -.02em; margin: 0; font-weight: 800; }
+    .sec-intro { color: var(--ink-soft); margin: .2rem 0 1.5rem; max-width: 68ch; }
+
+    /* ---- Callout ---- */
+    .callout { display: flex; gap: .85rem; align-items: flex-start; border-radius: var(--radius); padding: 1rem 1.15rem; margin: 1.25rem 0; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); }
+    .callout .ico { flex: none; width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: .9rem; font-weight: 800; color: #fff; background: var(--accent); }
+    .callout p { margin: 0; font-size: .92rem; color: var(--ink-soft); }
+    .callout p b { color: var(--ink); }
+
+    /* ---- Exercice ---- */
+    .exo { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem 1.35rem; margin: 1rem 0; box-shadow: var(--shadow); }
+    .exo-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .exo-meta { display: flex; align-items: center; gap: .6rem; }
+    .exo-num { font-family: "Fira Code", monospace; font-weight: 600; font-size: .82rem; color: var(--accent); }
+    .exo-type { font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); background: #f1f2f6; padding: .2rem .5rem; border-radius: 6px; }
+    .exo-diff { display: inline-flex; gap: 3px; align-items: center; }
+    .exo-diff .d { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+    .exo-diff .d.on { background: var(--accent); }
+    .exo-done { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--ink-faint); cursor: pointer; user-select: none; }
+    .exo-done input { width: 15px; height: 15px; accent-color: var(--ok); cursor: pointer; }
+    .exo-titre { font-size: 1.12rem; margin: .85rem 0 .35rem; font-weight: 700; letter-spacing: -.01em; }
+    .exo-enonce { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .95rem; }
+
+    .exo-sig { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .6rem 0; }
+    .exo-sig-k { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
+    .exo-sig code { font-size: .82rem; color: var(--code-ink); background: var(--code-bg); padding: .3rem .6rem; border-radius: 7px; }
+
+    /* ---- Code ---- */
+    .code { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin: .75rem 0; overflow: hidden; }
+    .code.small pre { font-size: .78rem; padding: .75rem .9rem; }
+    .code-head { display: flex; align-items: center; gap: .5rem; padding: .5rem .85rem; border-bottom: 1px solid var(--line); background: #fbfbfd; font-size: .72rem; color: var(--ink-faint); font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+    .code-head .fname { margin-left: .25rem; font-family: "Fira Code", monospace; }
+    .code pre { margin: 0; padding: 1rem 1.1rem; overflow-x: auto; font-size: .82rem; line-height: 1.6; color: var(--code-ink); tab-size: 4; }
+
+    /* ---- Reveal (indice / solution) ---- */
+    .reveal { border: 1px solid var(--line); border-radius: 10px; margin-top: .65rem; overflow: hidden; background: #fbfbfd; }
+    .reveal summary { cursor: pointer; list-style: none; padding: .65rem .9rem; font-size: .85rem; font-weight: 600; color: var(--ink-soft); display: flex; align-items: center; gap: .55rem; transition: color .15s; }
+    .reveal summary::-webkit-details-marker { display: none; }
+    .reveal summary:hover { color: var(--ink); }
+    .rev-ic { font-family: "Fira Code", monospace; font-size: .72rem; font-weight: 700; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; color: #fff; }
+    .reveal.hint .rev-ic { background: var(--ink-faint); }
+    .reveal.sol .rev-ic { background: var(--ok); }
+    .reveal[open] summary { border-bottom: 1px solid var(--line); }
+    .reveal-body { padding: .35rem .9rem 1rem; }
+    .reveal-body p { margin: .5rem 0 0; font-size: .9rem; color: var(--ink-soft); }
+    .reveal.sol .reveal-body { padding-bottom: .9rem; }
+
+    /* ---- Footer ---- */
+    .foot { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: .82rem; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 720px) {
+      .navspy { width: 100%; margin-left: 0; overflow-x: auto; flex-wrap: nowrap; padding-bottom: .15rem; }
+      .exo-head { flex-wrap: wrap; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="brand">420-707-AH · <span>Fonctions PHP</span></div>
+        <nav class="navspy" aria-label="Niveaux">
+          {niveaux.map((n) => (
+            <a href={`#${n.id}`} data-spy={n.id}>{n.label}</a>
+          ))}
+        </nav>
+      </div>
+      <div class="progress">
+        <div class="progress-row">
+          <span class="progress-label">Progression</span>
+          <span class="progress-count"><b id="pcount">0</b> / <span id="ptotal">{total}</span> exercices</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="pfill"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">Développement côté serveur</div>
+      <h1>Définir des fonctions en PHP</h1>
+      <p>
+        Trois niveaux pour passer du calcul pur à la génération de pages, puis
+        au nettoyage de code réel. Lis l'énoncé, écris ta fonction, vérifie le
+        résultat attendu, et ouvre la solution seulement après avoir essayé.
+      </p>
+    </div>
+
+    <!-- ===== Niveau 1 ===== -->
+    <section id="niveau-1">
+      <div class="sec-head"><span class="sec-num">Niveau 1</span><h2>Calculer, chercher, trier, formater</h2></div>
+      <p class="sec-intro">
+        Le cœur du métier : une fonction reçoit des données, fait un travail,
+        retourne un résultat. On commence par des fonctions pures, sans HTML —
+        juste de la logique propre et testable.
+      </p>
+      {parNiveau(1).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <!-- ===== Niveau 2 ===== -->
+    <section id="niveau-2">
+      <div class="sec-head"><span class="sec-num">Niveau 2</span><h2>Générer des fragments HTML</h2></div>
+      <p class="sec-intro">
+        Côté serveur, produire du HTML est l'essentiel du travail. Une fonction
+        peut retourner une chaîne HTML : c'est la brique de base d'un site
+        dynamique. Règle de sécurité dès maintenant : on échappe toute donnée
+        externe avec <code>htmlspecialchars()</code>.
+      </p>
+      <div class="callout">
+        <span class="ico">i</span>
+        <p>Ces fonctions se composent : <b>2.4 réutilise 2.2</b>. Une petite fonction bien nommée par fragment, et tes pages s'assemblent comme des briques.</p>
+      </div>
+      {parNiveau(2).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <!-- ===== Niveau 3 ===== -->
+    <section id="niveau-3">
+      <div class="sec-head"><span class="sec-num">Niveau 3</span><h2>Simplifier du code avec des fonctions</h2></div>
+      <p class="sec-intro">
+        Les fonctions ne servent pas qu'à découper : elles éliminent la
+        répétition. On part ici de code qui se répète et on l'allège en
+        extrayant une fonction. La méthode : repérer ce qui change et ce qui
+        reste pareil.
+      </p>
+      <div class="callout">
+        <span class="ico">↺</span>
+        <p>Ces exercices bouclent la boucle : tu réutilises <b>aireRectangle</b> (1.1), <b>carteEtudiant</b> (2.4) et <b>formaterPrix</b> (1.5). Écrire une fonction une fois, la rappeler partout.</p>
+      </div>
+      {parNiveau(3).map((ex) => <Exercice {...ex} />)}
+    </section>
+
+    <footer class="foot">
+      420-707-AH — Développement côté serveur · Exercices progressifs : définir des fonctions · Ta progression est gardée dans ce navigateur.
+    </footer>
+  </div>
+
+  <script is:inline>
+    (function () {
+      // --- Scroll-spy ---
+      const links = Array.from(document.querySelectorAll('.navspy a'));
+      const map = new Map(links.map((a) => [a.dataset.spy, a]));
+      const targets = Array.from(map.keys()).map((id) => document.getElementById(id)).filter(Boolean);
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            links.forEach((l) => l.classList.remove('active'));
+            const link = map.get(e.target.id);
+            if (link) link.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-25% 0px -65% 0px', threshold: 0 });
+      targets.forEach((t) => obs.observe(t));
+
+      // --- Suivi de progression (localStorage, robuste) ---
+      const checks = Array.from(document.querySelectorAll('.exo-check'));
+      const fill = document.getElementById('pfill');
+      const count = document.getElementById('pcount');
+      const ptotal = document.getElementById('ptotal');
+      const KEY = 'aeh707-exo-fonctions';
+      const total = checks.length;
+      if (ptotal) ptotal.textContent = String(total);
+
+      let done = {};
+      try { done = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { done = {}; }
+
+      function render() {
+        const n = checks.filter((c) => c.checked).length;
+        if (count) count.textContent = String(n);
+        if (fill) fill.style.width = total ? (n / total * 100) + '%' : '0%';
+      }
+
+      checks.forEach((c) => {
+        const id = c.dataset.exo;
+        if (done[id]) c.checked = true;
+        c.addEventListener('change', () => {
+          done[id] = c.checked;
+          try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {}
+          render();
+        });
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

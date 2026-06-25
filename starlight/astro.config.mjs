@@ -42,12 +42,12 @@ export default defineConfig({
 						{ label: 'La navigation en PHP', slug: 'exercices/03-navigation' },
 					]
 				},
-				// {
-				// 	label: 'Travaux',
-				// 	items: [
-				// 		{ label: 'Sélecteur de place', slug: 'tps/01-selecteur-place' },
-				// 	]
-				// },
+				{
+					label: 'Travaux',
+					items: [
+						{ label: 'Sélecteur de place', slug: 'tps/01-selecteur-place' },
+					]
+				},
 				{
 					label: 'Reference',
 					items: [{

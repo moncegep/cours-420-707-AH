@@ -32,6 +32,7 @@ export default defineConfig({
 						{ label: 'Notions avancées de PHP', slug: 'cours/03-prog-avancee-php' },
 						{ label: 'Navigation et composition de pages', slug: 'cours/04-navigation' },
 						{ label: 'Formulaires et GET / POST', slug: 'cours/05-formulaires' },
+						{ label: 'Superglobales et API', slug: 'cours/06-superglobals' },
 					]
 				},
 				{

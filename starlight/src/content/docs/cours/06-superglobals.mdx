@@ -1,0 +1,476 @@
+---
+title: Superglobales
+description: Les superglobales $_GET, $_POST et $_SERVER, la méthode HTTP de la requête, et une introduction aux réponses JSON pour les API.
+sidebar:
+  order: 7
+---
+
+import Aside from '../../../components/Aside.astro';
+import MarginNote from '../../../components/MarginNote.astro';
+import Highlight from '../../../components/Highlight.astro';
+import Checkpoint from '../../../components/Checkpoint.astro';
+import Quiz from '../../../components/react/Quiz.jsx';
+import FluxSequence from '../../../components/react/FluxSequence.jsx';
+import RequeteInspecteur from '../../../components/react/RequeteInspecteur.jsx';
+
+Lorsqu'une requête HTTP atteint une application PHP, le serveur doit répondre à trois questions :
+
+1. Que demande le client ?
+2. Quelles données a-t-il envoyées ?
+3. Quelle réponse faut-il produire ?
+
+PHP met une partie de ces informations à disposition dans des tableaux appelés **superglobales**. Ce chapitre présente les trois principales, puis montre comment répondre non plus à un navigateur, mais à un programme.
+
+<Aside type="prerequis" title="Avant de commencer">
+On s'appuie sur les [formulaires et la validation](/cours/05-formulaires) (`$_GET`, `$_POST`, `REQUEST_METHOD`) ainsi que sur la [navigation et la composition](/cours/04-navigation) (`include`, gabarit et routeur).
+</Aside>
+
+## Une requête HTTP vue par PHP
+
+Une requête HTTP contient notamment :
+
+- une méthode, comme GET ou POST ;
+- une adresse ;
+- des en-têtes ;
+- parfois un corps contenant des données.
+
+PHP transforme certaines de ces informations en tableaux accessibles dans tous les fichiers et dans toutes les fonctions, sans aucune déclaration préalable. Ces tableaux sont les **superglobales**.
+
+<table>
+  <thead>
+    <tr>
+    <th>Superglobale</th>
+    <th>Contenu principal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>$_GET</code></td>
+      <td>Les paramètres placés dans la chaîne de requête, après le <code>?</code> dans l'URL.</td>
+    </tr>
+    <tr>
+      <td><code>$_POST</code></td>
+      <td>Les données d'un formulaire envoyé avec la méthode POST.</td>
+    </tr>
+    <tr>
+      <td><code>$_SERVER</code></td>
+      <td>Des informations sur la requête, le serveur et l'environnement d'exécution.</td>
+    </tr>
+  </tbody>
+</table>
+
+## Observer une requête
+
+Avant d'examiner chaque superglobale, voici une requête que vous pouvez modifier. Changez la méthode, l'adresse et les champs, puis observez les tableaux que PHP construit à partir de votre requête. Les sections suivantes reprennent ensuite chaque superglobale en détail.
+
+<RequeteInspecteur client:visible />
+
+## La superglobale `$_GET`
+
+**Construction.** PHP remplit `$_GET` à partir de la **chaîne de requête**, c'est-à-dire la portion de l'URL située après le `?`. Chaque paramètre s'écrit sous la forme `nom=valeur`, et le caractère `&` sépare les paramètres entre eux.
+
+Pour la requête suivante :
+
+```sh
+GET /index.php?page=produits&categorie=sirop
+```
+
+PHP construit le tableau :
+
+```php
+<?php
+echo $_GET['page'];       // "produits"
+echo $_GET['categorie'];  // "sirop"
+```
+
+**Fonctionnement.** `$_GET` est un tableau associatif : chaque clé est le nom d'un paramètre, et chaque valeur est son contenu, toujours sous forme de chaîne de caractères (ou de tableau, voir plus bas).
+
+**Usage.** On lit une valeur par sa clé, en prévoyant le cas où le paramètre est absent grâce à l'opérateur `??` :
+
+```php
+<?php
+$categorie = $_GET['categorie'] ?? null;
+```
+
+Une valeur peut aussi être un tableau lorsqu'un paramètre se répète avec la notation `[]` :
+
+```sh
+GET /index.php?categorie[]=sirop&categorie[]=miel
+```
+
+```php
+<?php
+$_GET['categorie']; // ["sirop", "miel"]
+```
+
+C'est pourquoi une vérification du type est souvent utile avant d'utiliser la valeur :
+
+```php
+<?php
+$categorie = $_GET['categorie'] ?? null;
+
+if ($categorie !== null && !is_string($categorie)) {
+    $categorie = null;
+}
+```
+
+<Highlight couleur="ambre">`$_GET` contient les paramètres de l'URL, indépendamment de la méthode HTTP. Une requête POST qui possède une chaîne de requête remplit elle aussi `$_GET`.</Highlight>
+
+<MarginNote type="rappel" titre="Dans Express">
+Une application Node avec Express expose des informations semblables à travers `req.query`, `req.body`, `req.method` et `req.headers`. PHP les répartit plutôt entre plusieurs tableaux superglobaux.
+</MarginNote>
+
+## La superglobale `$_POST`
+
+**Construction.** PHP remplit `$_POST` à partir du **corps** d'une requête POST, lorsque ce corps provient d'un formulaire HTML. La clé de chaque valeur est l'attribut `name` du champ.
+
+```html
+<form method="post" action="index.php?page=commande">
+    <input type="text" name="nom">
+    <input type="email" name="courriel">
+    <button>Envoyer</button>
+</form>
+```
+
+Après l'envoi, PHP construit :
+
+```php
+<?php
+echo $_POST['nom'];       // la valeur saisie dans le champ « nom »
+echo $_POST['courriel'];  // la valeur saisie dans le champ « courriel »
+```
+
+**Fonctionnement.** Comme `$_GET`, `$_POST` est un tableau associatif dont les clés sont les noms des champs. Un champ sans attribut `name` n'apparaît jamais dans `$_POST`.
+
+**Usage.** On lit les valeurs de la même façon, avec une valeur par défaut et une validation :
+
+```php
+<?php
+$nom = trim($_POST['nom'] ?? '');
+
+if ($nom === '') {
+    // Champ obligatoire manquant.
+}
+```
+
+<Highlight couleur="ambre">Pour une requête GET, `$_POST` est vide. C'est la requête POST, et elle seule, qui le remplit à partir de son corps.</Highlight>
+
+## La superglobale `$_SERVER`
+
+**Construction.** Le serveur web et PHP remplissent `$_SERVER` avec des informations sur la requête et sur l'environnement d'exécution. À la différence de `$_GET` et `$_POST`, ses clés sont **prédéfinies** : on ne les invente pas, on les consulte.
+
+<table>
+  <thead>
+    <tr>
+      <th>Clé</th>
+      <th>Contenu</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>REQUEST_METHOD</code></td><td>La méthode HTTP de la requête (GET, POST...).</td></tr>
+    <tr><td><code>REQUEST_URI</code></td><td>Le chemin demandé, avec la chaîne de requête.</td></tr>
+    <tr><td><code>QUERY_STRING</code></td><td>La chaîne de requête seule, sans le <code>?</code>.</td></tr>
+    <tr><td><code>HTTP_HOST</code></td><td>Le nom d'hôte demandé par le client.</td></tr>
+    <tr><td><code>REMOTE_ADDR</code></td><td>L'adresse IP du client.</td></tr>
+  </tbody>
+</table>
+
+**Fonctionnement et usage.** On lit une information par sa clé :
+
+```php
+<?php
+echo $_SERVER['REQUEST_METHOD'];  // "GET"
+echo $_SERVER['REQUEST_URI'];     // "/index.php?page=produits&categorie=sirop"
+```
+
+<Highlight couleur="ambre">Certaines valeurs de `$_SERVER` proviennent du client, comme `HTTP_HOST` ou les en-têtes transmis par le navigateur. Elles ne sont pas plus fiables que `$_GET` ou `$_POST` et doivent être traitées avec la même prudence.</Highlight>
+
+### La méthode de la requête
+
+La méthode HTTP, lue dans `$_SERVER['REQUEST_METHOD']`, indique le type d'action demandé par le client.
+
+<table>
+  <thead>
+    <tr>
+      <th>Méthode</th>
+      <th>Intention habituelle</th>
+      <th>Propriété importante</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>GET</code></td>
+      <td>Consulter une ressource.</td>
+      <td>Sûre et idempotente.</td>
+    </tr>
+    <tr>
+      <td><code>POST</code></td>
+      <td>Soumettre des données ou créer une ressource.</td>
+      <td>Généralement non idempotente.</td>
+    </tr>
+    <tr>
+      <td><code>PUT</code></td>
+      <td>Créer ou remplacer complètement une ressource.</td>
+      <td>Idempotente.</td>
+    </tr>
+    <tr>
+      <td><code>PATCH</code></td>
+      <td>Modifier partiellement une ressource.</td>
+      <td>Pas nécessairement idempotente.</td>
+    </tr>
+    <tr>
+      <td><code>DELETE</code></td>
+      <td>Supprimer une ressource.</td>
+      <td>Idempotente.</td>
+    </tr>
+  </tbody>
+</table>
+
+<Aside type="syntaxe" title="Sûre et idempotente">
+Une méthode est dite **sûre** lorsque le client ne demande pas de modification de l'état du système.
+
+Une méthode est **idempotente** lorsque répéter plusieurs fois la même requête produit le même effet qu'une seule exécution. Supprimer deux fois la même ressource, par exemple, la laisse simplement supprimée.
+</Aside>
+
+On s'en sert pour distinguer l'affichage du traitement dans une même page :
+
+```php
+<?php
+$methode = $_SERVER['REQUEST_METHOD'];
+
+if ($methode === 'POST') {
+    // Traiter les données soumises.
+} else {
+    // Afficher la ressource ou le formulaire.
+}
+```
+
+Les formulaires HTML prennent directement en charge GET et POST. Les autres méthodes (PUT, PATCH, DELETE) sont généralement envoyées par du JavaScript, une application mobile ou un outil comme `curl`.
+
+<Checkpoint question="Une requête POST peut-elle contenir des données dans $_GET ?">
+Oui. `$_GET` correspond aux paramètres de la chaîne de requête, pas à la méthode HTTP.
+
+Une requête comme `POST /index.php?page=commande` place `commande` dans `$_GET['page']`, tandis que les champs du formulaire sont placés dans `$_POST`.
+</Checkpoint>
+
+## Aperçu des API : répondre à un programme
+
+### Pourquoi pas du HTML, et dans quel format
+
+Une page renvoie du HTML, ce qui convient à un navigateur dont le rôle est de l'**afficher**. Le HTML mêle cependant les données et leur présentation : balises de structure, libellés, mise en forme. Un programme qui veut seulement une donnée précise, par exemple le prix d'un produit, devrait alors l'extraire de ce HTML, une opération fragile qui se brise au moindre changement de présentation.
+
+Une API renvoie donc généralement les **données seules**, dans un format prévu pour les programmes. Le **JSON** est le plus répandu, mais ce n'est pas le seul :
+
+- le **XML**, présent dans de nombreux systèmes établis et certains domaines réglementés ;
+- le **CSV**, commode pour des données tabulaires destinées à un tableur ;
+- le **texte brut**, pour une réponse simple.
+
+Une même liste de produits prend ainsi plusieurs formes selon le client. Pour un navigateur, du HTML à présenter :
+
+```html
+<ul>
+  <li>Sirop d'érable 540 ml : 14,50 $</li>
+  <li>Beurre d'érable 250 g : 9,95 $</li>
+</ul>
+```
+
+Pour un programme, les mêmes données en JSON :
+
+```json
+[
+  { "nom": "Sirop d'érable 540 ml", "prix": 14.5 },
+  { "nom": "Beurre d'érable 250 g", "prix": 9.95 }
+]
+```
+
+Ou en XML, si le client l'attend ainsi :
+
+```xml
+<produits>
+  <produit><nom>Sirop d'érable 540 ml</nom><prix>14.50</prix></produit>
+  <produit><nom>Beurre d'érable 250 g</nom><prix>9.95</prix></produit>
+</produits>
+```
+
+<MarginNote type="definition" titre="Représentation">
+Le HTML, le JSON et le XML sont des **représentations** différentes d'une même ressource. Le serveur expose les données ; le client choisit la représentation qui lui convient.
+</MarginNote>
+
+### Du HTML aux données : le fonctionnement d'une API
+
+Jusqu'ici, une requête GET atteignait une page complète :
+
+```sh
+GET /index.php?page=produits
+```
+
+Le serveur répondait avec toute la page : en-tête, menu, liste des produits, pied de page.
+
+Certains clients ne veulent pas cette page complète, mais demandent le
+**contenu sans la présentation**, afin de garder le contrôle sur la mise en forme.
+
+Pour servir une telle requête, plusieurs éléments doivent être réunis :
+
+1. distinguer cette requête d'une requête de page ordinaire, par une route dédiée (par exemple `?page=api-produits`, ou un préfixe `/api/`) ;
+2. produire une réponse qui ne contient que les données, sans le gabarit HTML ;
+3. annoncer le format avec l'en-tête `Content-Type: application/json` ;
+4. encoder les données avec `json_encode`.
+
+L'exemple d'un tel point d'accès en lecture :
+
+```php
+<?php
+// index.php?page=api-produits
+$produits = [
+    ["nom" => "Sirop d'érable 540 ml", "prix" => 14.50],
+    ["nom" => "Beurre d'érable 250 g", "prix" => 9.95],
+];
+
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($produits, JSON_UNESCAPED_UNICODE);
+```
+
+<FluxSequence
+  client:visible
+  titre="Une requête d'API en lecture"
+  acteurs={[
+    { key: "prog", label: "Programme client", icone: "laptop" },
+    { key: "serveur", label: "Serveur PHP", icone: "server" },
+  ]}
+  etapes={[
+    { de: 0, vers: 1, texte: "GET", note: "/index.php?page=api-produits" },
+    { de: 1, vers: 0, texte: "Réponse : un corps JSON", statut: 200 },
+  ]}
+/>
+
+### Envoyer des données : la requête POST
+
+Un programme peut aussi **envoyer** des données, par exemple pour créer un produit. Il emploie alors la méthode POST. Le corps de la requête arrive de deux façons selon son format :
+
+- un corps de **formulaire**, comme celui d'un formulaire HTML, se trouve dans `$_POST` ;
+- un corps **JSON** qui se lit avec `php://input`, puis transformer en tableau avec `json_decode`.
+
+Pour traiter un tel envoi, on vérifie la méthode, on lit et valide les données, puis on répond avec un statut adapté, par exemple `201 Created` :
+
+```php
+<?php
+// index.php?page=api-produits  (méthode POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $donnees = json_decode(file_get_contents('php://input'), true);
+
+    if (!is_array($donnees) || !isset($donnees['nom'], $donnees['prix'])) {
+        http_response_code(400);
+        echo json_encode(['erreur' => 'Données invalides']);
+        exit;
+    }
+
+    // ... enregistrer le produit ...
+
+    http_response_code(201);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($donnees, JSON_UNESCAPED_UNICODE);
+}
+```
+
+La requête correspondante précise sa méthode, son en-tête de format et son corps :
+
+```http
+POST /index.php?page=api-produits
+Content-Type: application/json
+
+{ "nom": "Tire sur la neige", "prix": 6 }
+```
+
+<Highlight couleur="ambre">Un corps JSON n'arrive pas dans `$_POST`, qui est réservé aux corps de formulaire. On le lit avec `php://input`, puis on le décode avec `json_decode`.</Highlight>
+
+### Remplacer et supprimer : PUT et DELETE
+
+Deux autres méthodes complètent l'ensemble. **PUT** remplace une ressource existante, **DELETE** la supprime. On les traite comme POST, en consultant `$_SERVER['REQUEST_METHOD']` :
+
+```php
+<?php
+$methode = $_SERVER['REQUEST_METHOD'];
+
+if ($methode === 'PUT') {
+    // remplacer la ressource visée
+} elseif ($methode === 'DELETE') {
+    // supprimer la ressource visée
+}
+```
+
+Un formulaire HTML ne peut émettre que GET et POST. Les requêtes PUT et DELETE proviennent donc d'un programme ou d'un outil de test, présentés plus bas.
+
+### Configuration de XAMPP au besoin
+
+Apache, fourni avec XAMPP, traite GET et POST sans réglage particulier, et PHP reçoit PUT et DELETE de la même façon. Deux besoins peuvent toutefois demander une configuration :
+
+- pour des adresses propres comme `/api/produits` au lieu de `?page=api-produits`, activez le module de réécriture (`LoadModule rewrite_module modules/mod_rewrite.so` dans `httpd.conf`) et autorisez les fichiers `.htaccess` avec `AllowOverride All` sur le dossier du projet ;
+- pour recevoir un corps volumineux, les directives `post_max_size` et `upload_max_filesize` de `php.ini` fixent la taille acceptée.
+
+Après toute modification de `httpd.conf` ou de `php.ini`, redémarrez Apache depuis le panneau de contrôle de XAMPP.
+
+## Récapitulatif
+
+- `$_GET` contient les paramètres de la chaîne de requête, quelle que soit la méthode HTTP.
+- `$_POST` contient les données des formulaires envoyés avec POST ; il est vide pour une requête GET.
+- `$_SERVER` contient des informations sur la requête et l'environnement, avec des clés prédéfinies comme `REQUEST_METHOD`.
+- Toute donnée provenant du client doit être validée avant son utilisation, puis échappée à l'affichage.
+- Une API renvoie les données seules, sans la présentation HTML, dans un format prévu pour les programmes : le JSON le plus souvent, parfois le XML ou le CSV.
+- On distingue une requête d'API par sa route et sa méthode ; un corps JSON se lit avec `php://input`, et non avec `$_POST`.
+- `GET` consulte, `POST` envoie, `PUT` remplace et `DELETE` supprime.
+
+<MarginNote type="lien">
+Ceci reste un aperçu. La conception des routes, le choix des codes de statut et les contraintes REST seront approfondis plus tard.
+</MarginNote>
+
+## Quiz
+
+<Quiz
+  client:visible
+  question="Quelle superglobale contient la méthode HTTP de la requête ?"
+  options={[
+    { texte: "$_GET['method']", correct: false },
+    { texte: "$_SERVER['REQUEST_METHOD']", correct: true },
+    { texte: "$_POST['verbe']", correct: false },
+  ]}
+  retour="Le verbe de la requête (GET, POST...) se lit dans $_SERVER['REQUEST_METHOD']. $_GET et $_POST contiennent les données, pas la méthode."
+/>
+
+<Quiz
+  client:visible
+  question="Une requête POST contient ?categorie=sirop dans son URL. Où PHP place-t-il cette valeur ?"
+  options={[
+    { texte: "Dans $_GET['categorie']", correct: true },
+    { texte: "Dans $_POST['categorie']", correct: false },
+    { texte: "Uniquement dans le corps de la requête", correct: false },
+  ]}
+  retour="$_GET contient les paramètres de la chaîne de requête, même lorsque la méthode utilisée est POST."
+/>
+
+<Quiz
+  client:visible
+  question="Quelle superglobale contient les champs d'un formulaire envoyé avec la méthode POST ?"
+  options={[
+    { texte: "$_GET", correct: false },
+    { texte: "$_POST", correct: true },
+    { texte: "$_SERVER", correct: false },
+  ]}
+  retour="Les champs d'un formulaire POST se trouvent dans $_POST, sous leur attribut name. $_GET garde les paramètres de l'URL, et $_SERVER les informations sur la requête."
+/>
+
+<Quiz
+  client:visible
+  question="Comment répondre en JSON à un programme plutôt qu'en HTML ?"
+  options={[
+    { texte: "En envoyant json_encode($donnees) avec l'en-tête Content-Type: application/json", correct: true },
+    { texte: "En écrivant le tableau directement avec echo", correct: false },
+    { texte: "En renvoyant une page HTML contenant le tableau", correct: false },
+  ]}
+  retour="json_encode() transforme le tableau en texte JSON, et l'en-tête Content-Type annonce le format au programme qui appelle l'API."
+/>
+
+## Références
+
+- [php.net : la superglobale $_SERVER](https://www.php.net/manual/fr/reserved.variables.server.php)
+- [php.net : json_encode](https://www.php.net/manual/fr/function.json-encode.php)
+- [MDN : méthodes de requête HTTP](https://developer.mozilla.org/fr/docs/Web/HTTP/Methods)
